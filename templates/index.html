@@ -89,6 +89,27 @@
 
     .actions { display: flex; gap: 6px; }
     .empty { text-align: center; padding: 40px; color: #aaa; font-size: 0.95rem; }
+
+    tbody tr.overdue td { background: #fff3cd; }
+    tbody tr.overdue:hover td { background: #ffeaa7; }
+
+    .tag-badge {
+      display: inline-block; padding: 2px 7px; border-radius: 10px;
+      font-size: 0.72rem; font-weight: 600;
+      background: #dce8f8; color: #1a5276; margin-right: 3px; white-space: nowrap;
+    }
+    .tag-filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; align-items: center; }
+    .tag-chip {
+      padding: 4px 12px; border-radius: 14px; font-size: 0.8rem;
+      border: 1px solid #bbb; background: white; cursor: pointer;
+      text-decoration: none; color: #333; transition: background .15s;
+    }
+    .tag-chip:hover { background: #e9ecef; }
+    .tag-chip.active { background: #2980b9; color: white; border-color: #2980b9; }
+
+    .drag-handle { cursor: grab; font-size: 1.1rem; color: #aaa; user-select: none; padding: 0 8px; }
+    .drag-handle:active { cursor: grabbing; }
+    tbody tr.drag-over { outline: 2px dashed #2980b9; }
   </style>
 </head>
 <body>
@@ -96,6 +117,7 @@
 <header>
   <h1>Task Manager</h1>
   <form method="get">
+    {% if active_tag %}<input type="hidden" name="tag" value="{{ active_tag }}" />{% endif %}
     <label>
       <input type="checkbox" name="show_done" value="1" onchange="this.form.submit()"
         {% if show_done %}checked{% endif %} />
@@ -134,6 +156,16 @@
           </select>
         </div>
         <div class="form-group">
+          <label>Due Date</label>
+          <input type="date" name="due_date"
+            value="{{ editing.due_date if editing and editing.due_date else '' }}" />
+        </div>
+        <div class="form-group grow">
+          <label>Tags</label>
+          <input type="text" name="tags" placeholder="e.g. work, urgent"
+            value="{{ editing.tags | join(', ') if editing else '' }}" />
+        </div>
+        <div class="form-group">
           <label>&nbsp;</label>
           {% if editing %}
           <button type="submit" class="btn btn-add">Save</button>
@@ -144,32 +176,59 @@
         {% if editing %}
         <div class="form-group">
           <label>&nbsp;</label>
-          <a href="/" class="btn btn-cancel" style="text-decoration:none;display:inline-block;">Cancel</a>
+          <a href="/?show_done={{ '1' if show_done else '0' }}{% if active_tag %}&tag={{ active_tag }}{% endif %}"
+             class="btn btn-cancel" style="text-decoration:none;display:inline-block;">Cancel</a>
         </div>
         {% endif %}
       </div>
     </form>
   </div>
 
+  <!-- Tag filter chips -->
+  {% if all_tags %}
+  <div class="tag-filters">
+    <span style="font-size:0.8rem;color:#666;">Filter by tag:</span>
+    <a href="/?show_done={{ '1' if show_done else '0' }}"
+       class="tag-chip {% if not active_tag %}active{% endif %}">All</a>
+    {% for tag in all_tags %}
+    <a href="/?show_done={{ '1' if show_done else '0' }}&tag={{ tag }}"
+       class="tag-chip {% if active_tag == tag %}active{% endif %}">{{ tag }}</a>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <!-- Task List -->
   {% if tasks %}
   <table>
     <thead>
       <tr>
+        {% if draggable_enabled %}<th style="width:32px"></th>{% endif %}
         <th>#</th>
         <th>Priority</th>
         <th>Title</th>
         <th>Description</th>
+        <th>Due Date</th>
+        <th>Tags</th>
         <th>Actions</th>
       </tr>
     </thead>
     <tbody>
       {% for task in tasks %}
-      <tr class="{{ 'done' if task.done else '' }}">
+      {% set overdue = task.due_date and task.due_date < today and not task.done %}
+      <tr class="{{ 'done' if task.done else '' }}{{ ' overdue' if overdue else '' }}"
+          {% if draggable_enabled %}draggable="true" data-id="{{ task.id }}"{% endif %}>
+        {% if draggable_enabled %}<td class="drag-handle" title="Drag to reorder">&#8286;</td>{% endif %}
         <td>{{ task.id }}</td>
         <td><span class="badge badge-{{ task.priority }}">{{ task.priority }}</span></td>
         <td>{{ task.title }}</td>
         <td>{{ task.description or '—' }}</td>
+        <td>{{ task.due_date or '—' }}</td>
+        <td>
+          {% for tag in task.tags %}
+          <a href="/?show_done={{ '1' if show_done else '0' }}&tag={{ tag }}"
+             class="tag-badge" style="text-decoration:none;">{{ tag }}</a>
+          {% else %}—{% endfor %}
+        </td>
         <td>
           <div class="actions">
             {% if not task.done %}
@@ -177,7 +236,7 @@
               <button type="submit" class="btn btn-done">Done</button>
             </form>
             {% endif %}
-            <a href="/edit/{{ task.id }}?show_done={{ '1' if show_done else '0' }}"
+            <a href="/edit/{{ task.id }}?show_done={{ '1' if show_done else '0' }}{% if active_tag %}&tag={{ active_tag }}{% endif %}"
                class="btn btn-edit" style="text-decoration:none;">Edit</a>
             <form method="post" action="/delete/{{ task.id }}"
                   onsubmit="return confirm('Delete this task?')">
@@ -193,6 +252,67 @@
   <div class="empty">No tasks yet. Add one above!</div>
   {% endif %}
 </main>
+
+{% if draggable_enabled %}
+<script>
+(function () {
+  const tbody = document.querySelector("tbody");
+  let dragSrc = null;
+
+  function getRow(el) {
+    while (el && el.tagName !== "TR") el = el.parentElement;
+    return el;
+  }
+
+  tbody.addEventListener("dragstart", function (e) {
+    dragSrc = getRow(e.target);
+    e.dataTransfer.effectAllowed = "move";
+    setTimeout(() => dragSrc && dragSrc.classList.add("drag-over"), 0);
+  });
+
+  tbody.addEventListener("dragover", function (e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  });
+
+  tbody.addEventListener("dragenter", function (e) {
+    const target = getRow(e.target);
+    if (target && target !== dragSrc) {
+      [...tbody.querySelectorAll("tr")].forEach(r => r.classList.remove("drag-over"));
+      target.classList.add("drag-over");
+    }
+  });
+
+  tbody.addEventListener("dragleave", function (e) {
+    if (!tbody.contains(e.relatedTarget)) {
+      [...tbody.querySelectorAll("tr")].forEach(r => r.classList.remove("drag-over"));
+    }
+  });
+
+  tbody.addEventListener("drop", function (e) {
+    e.preventDefault();
+    const target = getRow(e.target);
+    if (!target || target === dragSrc) return;
+    const rows = [...tbody.querySelectorAll("tr")];
+    const srcIdx = rows.indexOf(dragSrc);
+    const tgtIdx = rows.indexOf(target);
+    tbody.insertBefore(dragSrc, srcIdx < tgtIdx ? target.nextSibling : target);
+    [...tbody.querySelectorAll("tr")].forEach(r => r.classList.remove("drag-over"));
+    const order = [...tbody.querySelectorAll("tr[data-id]")].map(r => parseInt(r.dataset.id, 10));
+    fetch("/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order }),
+    }).catch(err => console.error("Reorder failed:", err));
+  });
+
+  tbody.addEventListener("dragend", function () {
+    if (dragSrc) dragSrc.classList.remove("drag-over");
+    dragSrc = null;
+  });
+})();
+</script>
+{% endif %}
 
 </body>
 </html>

@@ -12,6 +12,8 @@ class Task:
     done: bool = False
     priority: str = "medium"  # valid values: "low", "medium", "high"
     created_at: str = field(default_factory=lambda: datetime.now().isoformat())
+    due_date: Optional[str] = None           # ISO date YYYY-MM-DD, or None
+    tags: list = field(default_factory=list) # sorted list of lowercase strings
     id: Optional[int] = None
 
     def complete(self):

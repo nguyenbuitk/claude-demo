@@ -5,7 +5,9 @@
     "description": "From the supermarket",
     "done": true,
     "priority": "medium",
-    "created_at": "2026-03-20T16:28:55.860717"
+    "created_at": "2026-03-20T16:28:55.860717",
+    "due_date": null,
+    "tags": []
   },
   {
     "id": 3,
@@ -13,7 +15,9 @@
     "description": "",
     "done": true,
     "priority": "medium",
-    "created_at": "2026-03-20T16:29:37.808428"
+    "created_at": "2026-03-20T16:29:37.808428",
+    "due_date": null,
+    "tags": []
   },
   {
     "id": 4,
@@ -21,7 +25,9 @@
     "description": "--",
     "done": true,
     "priority": "medium",
-    "created_at": "2026-03-20T16:30:05.327892"
+    "created_at": "2026-03-20T16:30:05.327892",
+    "due_date": null,
+    "tags": []
   },
   {
     "id": 5,
@@ -29,7 +35,9 @@
     "description": "--high",
     "done": false,
     "priority": "medium",
-    "created_at": "2026-03-20T16:30:09.354021"
+    "created_at": "2026-03-20T16:30:09.354021",
+    "due_date": null,
+    "tags": []
   },
   {
     "id": 6,
@@ -37,7 +45,9 @@
     "description": "",
     "done": false,
     "priority": "medium",
-    "created_at": "2026-03-20T16:53:29.813221"
+    "created_at": "2026-03-20T16:53:29.813221",
+    "due_date": null,
+    "tags": []
   },
   {
     "id": 7,
@@ -45,6 +55,20 @@
     "description": "From the supermarket",
     "done": false,
     "priority": "low",
-    "created_at": "2026-03-21T11:49:45.123269"
+    "created_at": "2026-03-21T11:49:45.123269",
+    "due_date": null,
+    "tags": []
+  },
+  {
+    "id": 8,
+    "title": "done claude code course",
+    "description": "",
+    "done": false,
+    "priority": "medium",
+    "created_at": "2026-03-21T12:53:40.665061",
+    "due_date": "2026-03-10",
+    "tags": [
+      "#work"
+    ]
   }
 ]

@@ -33,6 +33,8 @@ def save_tasks(tasks):
             "done": task.done,
             "priority": task.priority,
             "created_at": task.created_at,
+            "due_date": task.due_date,
+            "tags": task.tags,
         })
     with open(DATA_FILE, "w") as f:
         json.dump(data, f, indent=2)
