@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Task Manager</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", Helvetica, Arial, sans-serif;
+      background: #f0f2f5;
+      color: #333;
+    }
+
+    header {
+      background: #2c3e50;
+      color: white;
+      padding: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.3rem; }
+    header label { font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; gap: 6px; }
+
+    main { max-width: 860px; margin: 30px auto; padding: 0 16px; }
+
+    /* Add form */
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.1);
+      margin-bottom: 24px;
+    }
+    .card h2 { margin-bottom: 14px; font-size: 1rem; color: #555; }
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+    .form-group label { font-size: 0.78rem; color: #666; }
+    .form-group input, .form-group select {
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      padding: 7px 10px;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color .2s;
+    }
+    .form-group input:focus, .form-group select:focus { border-color: #2980b9; }
+    .form-group.grow { flex: 1; min-width: 160px; }
+    .btn {
+      padding: 8px 18px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 600;
+      transition: opacity .15s;
+    }
+    .btn:hover { opacity: 0.85; }
+    .btn-add  { background: #2980b9; color: white; }
+    .btn-done { background: #27ae60; color: white; padding: 5px 12px; font-size: 0.8rem; }
+    .btn-del  { background: #e74c3c; color: white; padding: 5px 12px; font-size: 0.8rem; }
+    .btn-edit { background: #8e44ad; color: white; padding: 5px 12px; font-size: 0.8rem; }
+    .btn-cancel { background: #95a5a6; color: white; }
+
+    /* Task table */
+    table { width: 100%; border-collapse: collapse; background: white;
+            border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.1); }
+    thead { background: #2c3e50; color: white; }
+    th, td { padding: 11px 14px; text-align: left; font-size: 0.88rem; }
+    th { font-weight: 600; }
+    tbody tr { border-bottom: 1px solid #eee; transition: background .1s; }
+    tbody tr:last-child { border-bottom: none; }
+    tbody tr:hover { background: #f8f9fa; }
+    tbody tr.done td { color: #aaa; text-decoration: line-through; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .badge-high   { background: #fde8e8; color: #c0392b; }
+    .badge-medium { background: #fef3cd; color: #b7770d; }
+    .badge-low    { background: #d4edda; color: #1e7e34; }
+
+    .actions { display: flex; gap: 6px; }
+    .empty { text-align: center; padding: 40px; color: #aaa; font-size: 0.95rem; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Task Manager</h1>
+  <form method="get">
+    <label>
+      <input type="checkbox" name="show_done" value="1" onchange="this.form.submit()"
+        {% if show_done %}checked{% endif %} />
+      Show completed
+    </label>
+  </form>
+</header>
+
+<main>
+  <!-- Add / Edit Task Form -->
+  <div class="card">
+    {% if editing %}
+    <h2>Edit Task #{{ editing.id }}</h2>
+    <form method="post" action="/edit/{{ editing.id }}">
+    {% else %}
+    <h2>Add New Task</h2>
+    <form method="post" action="/add">
+    {% endif %}
+      <div class="form-row">
+        <div class="form-group grow">
+          <label>Title *</label>
+          <input type="text" name="title" placeholder="Task title" required
+            value="{{ editing.title if editing else '' }}" />
+        </div>
+        <div class="form-group grow">
+          <label>Description</label>
+          <input type="text" name="description" placeholder="Optional description"
+            value="{{ editing.description if editing else '' }}" />
+        </div>
+        <div class="form-group">
+          <label>Priority</label>
+          <select name="priority">
+            {% for p in ['low', 'medium', 'high'] %}
+            <option value="{{ p }}" {% if (editing and editing.priority == p) or (not editing and p == 'medium') %}selected{% endif %}>{{ p|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>&nbsp;</label>
+          {% if editing %}
+          <button type="submit" class="btn btn-add">Save</button>
+          {% else %}
+          <button type="submit" class="btn btn-add">Add Task</button>
+          {% endif %}
+        </div>
+        {% if editing %}
+        <div class="form-group">
+          <label>&nbsp;</label>
+          <a href="/" class="btn btn-cancel" style="text-decoration:none;display:inline-block;">Cancel</a>
+        </div>
+        {% endif %}
+      </div>
+    </form>
+  </div>
+
+  <!-- Task List -->
+  {% if tasks %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Priority</th>
+        <th>Title</th>
+        <th>Description</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr class="{{ 'done' if task.done else '' }}">
+        <td>{{ task.id }}</td>
+        <td><span class="badge badge-{{ task.priority }}">{{ task.priority }}</span></td>
+        <td>{{ task.title }}</td>
+        <td>{{ task.description or '—' }}</td>
+        <td>
+          <div class="actions">
+            {% if not task.done %}
+            <form method="post" action="/done/{{ task.id }}">
+              <button type="submit" class="btn btn-done">Done</button>
+            </form>
+            {% endif %}
+            <a href="/edit/{{ task.id }}?show_done={{ '1' if show_done else '0' }}"
+               class="btn btn-edit" style="text-decoration:none;">Edit</a>
+            <form method="post" action="/delete/{{ task.id }}"
+                  onsubmit="return confirm('Delete this task?')">
+              <button type="submit" class="btn btn-del">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No tasks yet. Add one above!</div>
+  {% endif %}
+</main>
+
+</body>
+</html>
