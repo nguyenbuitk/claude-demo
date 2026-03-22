@@ -4,11 +4,13 @@ import os
 sys.path.insert(0, os.path.dirname(__file__))
 
 from flask import Flask, render_template, request, redirect, url_for
+from werkzeug.middleware.proxy_fix import ProxyFix
 from tasks import Task
 from storage import load_tasks, save_tasks
 from datetime import date
 
 app = Flask(__name__)
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_host=1, x_proto=1)
 
 
 def parse_tags(raw):
@@ -37,6 +39,8 @@ def index():
         tasks = [t for t in tasks if active_tag in t.tags]
     draggable_enabled = show_done and not active_tag
     today = date.today().isoformat()
+    client_ip = request.remote_addr
+    client_host = request.host
     return render_template(
         "index.html",
         tasks=tasks,
@@ -45,6 +49,8 @@ def index():
         all_tags=all_tags,
         draggable_enabled=draggable_enabled,
         today=today,
+        client_ip=client_ip,
+        client_host=client_host,
     )
 
 

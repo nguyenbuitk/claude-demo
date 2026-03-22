@@ -116,14 +116,19 @@
 
 <header>
   <h1>Task Manager</h1>
-  <form method="get">
-    {% if active_tag %}<input type="hidden" name="tag" value="{{ active_tag }}" />{% endif %}
-    <label>
-      <input type="checkbox" name="show_done" value="1" onchange="this.form.submit()"
-        {% if show_done %}checked{% endif %} />
-      Show completed
-    </label>
-  </form>
+  <div style="display:flex; align-items:center; gap:20px;">
+    <span style="font-size:0.8rem; color:#a0b0c0;">
+      IP: <strong>{{ client_ip }}</strong> &nbsp;|&nbsp; Host: <strong>{{ client_host }}</strong>
+    </span>
+    <form method="get">
+      {% if active_tag %}<input type="hidden" name="tag" value="{{ active_tag }}" />{% endif %}
+      <label>
+        <input type="checkbox" name="show_done" value="1" onchange="this.form.submit()"
+          {% if show_done %}checked{% endif %} />
+        Show completed
+      </label>
+    </form>
+  </div>
 </header>
 
 <main>
