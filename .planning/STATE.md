@@ -5,14 +5,14 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Every PR shows test results so regressions are caught before they reach main.
-**Current focus:** Phase 1 — pytest CI Workflow
+**Current focus:** Milestone v1.0 — Defining requirements and roadmap
 
 ## Current Position
 
-Phase: 1 of 1 (pytest CI Workflow)
-Plan: 0 of 3 in current phase
-Status: Ready to plan
-Last activity: 2026-03-23 — Roadmap created, ready to begin Phase 1 planning
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-03-23 — Milestone v1.0 started
 
 Progress: [░░░░░░░░░░] 0%
 
