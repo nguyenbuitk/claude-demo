@@ -47,7 +47,13 @@ Plans:
   3. A failed test on main prevents the Docker build from running
   4. After a successful merge, `ghcr.io/nguyenbuitk/claude-demo:latest` and `ghcr.io/nguyenbuitk/claude-demo:sha-<commit>` are both present in the GHCR registry
   5. The workflow authenticates to GHCR using only `GITHUB_TOKEN` — no manually created secrets required
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Write .github/workflows/ci.yml (test + build-and-push jobs)
+- [ ] 02-02-PLAN.md — Verify ci.yml locally (YAML lint + all 7 requirement checks)
+- [ ] 02-03-PLAN.md — Human verification (open PR, merge to main, verify GHCR tags)
+
 **Files touched**: `.github/workflows/ci.yml` (new)
 
 ### Phase 3: Deadline Highlighting
@@ -97,13 +103,13 @@ Plans:
 | TEST-03 | Short tracebacks (--tb=short) for readability | 01-01 |
 | CI-01 | Concurrency group cancels stale runs on same PR | 01-01 |
 | CI-02 | Workflow lives in a new dedicated file (test.yml) | 01-01 |
-| CI-01 | ci.yml contains both test and build-and-push jobs | Phase 2 |
-| CI-02 | test job runs on every PR and push to main | Phase 2 |
-| CI-03 | build-and-push runs only after test passes (needs: test) | Phase 2 |
-| CI-04 | build-and-push only triggers on push to main, not PRs | Phase 2 |
-| CI-05 | Docker image pushed to ghcr.io/nguyenbuitk/claude-demo | Phase 2 |
-| CI-06 | Image tagged with latest and sha-<commit-sha> | Phase 2 |
-| CI-07 | GHCR auth via GITHUB_TOKEN with packages: write | Phase 2 |
+| CI-01 | ci.yml contains both test and build-and-push jobs | 02-01 |
+| CI-02 | test job runs on every PR and push to main | 02-01 |
+| CI-03 | build-and-push runs only after test passes (needs: test) | 02-01 |
+| CI-04 | build-and-push only triggers on push to main, not PRs | 02-01 |
+| CI-05 | Docker image pushed to ghcr.io/nguyenbuitk/claude-demo | 02-01 |
+| CI-06 | Image tagged with latest and sha-<commit-sha> | 02-01 |
+| CI-07 | GHCR auth via GITHUB_TOKEN with packages: write | 02-01 |
 | HL-01 | Overdue tasks (due_date < today, not done) highlighted red | Phase 3 |
 | HL-02 | Soon-due tasks (due within 3 days, not done) highlighted amber | Phase 3 |
 | HL-03 | Tasks with no due_date have no highlight | Phase 3 |
@@ -119,7 +125,7 @@ Plans:
 | HI-08 | "History" link added to index.html header | Phase 4 |
 | HI-09 | History page is read-only (no Done/Edit/Delete buttons) | Phase 4 |
 
-**Coverage: 12/12 v1 requirements mapped (Phase 1) + 21/21 v1 requirements mapped (Phases 2–4).**
+**Coverage: 12/12 v1 requirements mapped (Phase 1) + 21/21 v1 requirements mapped (Phases 2-4).**
 
 ## Plan Dependencies
 
@@ -129,6 +135,12 @@ Plans:
    └── 01-02: Add conftest.py (no hard dependency on 01-01 but logically follows)
          |
          └── 01-03: Verify on a real PR (depends on 01-01 being merged or in a branch)
+
+02-01: Write ci.yml (no dependencies within phase)
+   |
+   └── 02-02: Verify ci.yml locally (depends on 02-01)
+         |
+         └── 02-03: Human verification on GitHub (depends on 02-02)
 
 Phase 2 (DevOps)   ─── parallel ───┐
 Phase 3 (Dev 1)    ─── parallel ───┤── all independent, merge DevOps first
