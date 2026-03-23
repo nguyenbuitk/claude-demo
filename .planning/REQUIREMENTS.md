@@ -9,8 +9,8 @@
 
 ### Docker CI — Build & Push to GHCR
 
-- [ ] **CI-01**: Workflow file `.github/workflows/ci.yml` chứa cả test job lẫn build+push job
-- [ ] **CI-02**: Job `test` chạy pytest trên mọi pull request và push lên `main`
+- [x] **CI-01**: Workflow file `.github/workflows/ci.yml` chứa cả test job lẫn build+push job
+- [x] **CI-02**: Job `test` chạy pytest trên mọi pull request và push lên `main`
 - [ ] **CI-03**: Job `build-and-push` chỉ chạy sau khi `test` pass (`needs: test`)
 - [ ] **CI-04**: Job `build-and-push` chỉ trigger khi push lên nhánh `main` (không chạy trên PR)
 - [ ] **CI-05**: Docker image được push lên `ghcr.io/nguyenbuitk/claude-demo`

@@ -1,3 +1,17 @@
+---
+gsd_state_version: 1.0
+milestone: v1.0
+milestone_name: milestone
+status: Phase complete — ready for verification
+stopped_at: Completed 01-pytest-ci-workflow plans 01-01 and 01-02; Plan 01-03 awaits human PR creation and UI verification
+last_updated: "2026-03-23T10:39:36.161Z"
+progress:
+  total_phases: 4
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
+---
+
 # Project State
 
 ## Project Reference
@@ -5,20 +19,17 @@
 See: .planning/PROJECT.md (updated 2026-03-23)
 
 **Core value:** Every PR shows test results so regressions are caught before they reach main.
-**Current focus:** Milestone v1.0 — Phases 2, 3, 4 roadmapped and ready to plan
+**Current focus:** Phase 01 — pytest-ci-workflow
 
 ## Current Position
 
-Phase: Phase 1 not started / Phases 2–4 roadmapped
-Plan: —
-Status: Roadmap complete — ready for phase planning
-Last activity: 2026-03-23 — Phases 2, 3, 4 appended to ROADMAP.md
-
-Progress: [░░░░░░░░░░] 0%
+Phase: 01 (pytest-ci-workflow) — EXECUTING
+Plan: 1 of 1
 
 ## Performance Metrics
 
 **Velocity:**
+
 - Total plans completed: 0
 - Average duration: -
 - Total execution time: 0 hours
@@ -33,10 +44,12 @@ Progress: [░░░░░░░░░░] 0%
 | 4. Completion History | 3 (TBD) | - | - |
 
 **Recent Trend:**
+
 - Last 5 plans: -
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01-pytest-ci-workflow P01 | 8 | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -55,6 +68,8 @@ Recent decisions affecting current work:
 - [Roadmap v1.0]: UTC assumption for deadline comparison — no JavaScript date handling in v1
 - [Roadmap v1.0]: Phases 2, 3, 4 are genuinely parallel — DevOps, Dev 1, Dev 2 workstreams touch non-overlapping files; merge DevOps first to establish CI gate
 - [Roadmap v1.0]: completed_at field must be updated atomically across Task dataclass, complete(), save_tasks(), and /history route — any partial deployment causes silent data loss
+- [Phase 01-pytest-ci-workflow]: Trigger on pull_request only (not push to main) — PR-only visibility per Phase 1 scope
+- [Phase 01-pytest-ci-workflow]: conftest.py at repo root with comments only — presence triggers pytest rootdir detection, no code needed
 
 ### Pending Todos
 
@@ -71,6 +86,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-03-23
-Stopped at: Roadmap v1.0 written — Phases 2, 3, 4 appended to .planning/ROADMAP.md; ready to run /gsd:plan-phase for each workstream
+Last session: 2026-03-23T10:39:36.160Z
+Stopped at: Completed 01-pytest-ci-workflow plans 01-01 and 01-02; Plan 01-03 awaits human PR creation and UI verification
 Resume file: None

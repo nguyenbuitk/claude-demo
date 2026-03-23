@@ -12,7 +12,7 @@ This project adds automated pytest execution to a Flask task manager app. A sing
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: pytest CI Workflow** - Create .github/workflows/test.yml so every PR shows test results
+- [x] **Phase 1: pytest CI Workflow** - Create .github/workflows/test.yml so every PR shows test results (completed 2026-03-23)
 - [ ] **Phase 2: Docker CI Pipeline** - Build and push Docker image to GHCR on merge to main, gated behind passing tests
 - [ ] **Phase 3: Deadline Highlighting** - Highlight overdue tasks red and soon-due tasks amber in the task list
 - [ ] **Phase 4: Completion History** - Record completion timestamps and expose a read-only history view
@@ -32,7 +32,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Write .github/workflows/test.yml (trigger, env, deps, test execution, concurrency)
+- [x] 01-01: Write .github/workflows/test.yml (trigger, env, deps, test execution, concurrency)
 - [ ] 01-02: Add conftest.py at repo root to eliminate sys.path boilerplate from test files
 - [ ] 01-03: Verify workflow runs correctly on a test PR and all success criteria are met
 
@@ -141,7 +141,7 @@ Phase 4 (Dev 2)    ─── parallel ───┘
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. pytest CI Workflow | 0/3 | Not started | - |
+| 1. pytest CI Workflow | 1/1 | Complete   | 2026-03-23 |
 | 2. Docker CI Pipeline | 0/3 | Not started | - |
 | 3. Deadline Highlighting | 0/2 | Not started | - |
 | 4. Completion History | 0/3 | Not started | - |
