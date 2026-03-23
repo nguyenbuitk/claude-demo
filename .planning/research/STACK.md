@@ -1,116 +1,230 @@
-# Technology Stack: GitHub Actions pytest CI
+# Technology Stack: v1.0 Feature Expansion
 
-**Project:** Claude Demo — CI/CD Pipeline (pytest on PR)
+**Project:** Claude Demo — Docker GHCR Push + Deadline Highlighting + Completion History
 **Researched:** 2026-03-23
-**Scope:** GitHub Actions workflow stack for running pytest against a Python 3.12 Flask app
+**Scope:** Stack additions for the three new milestone features only. Existing pytest CI stack is already resolved (see prior research round).
 
 ---
 
-## Recommended Stack
+## Context: What Already Exists
 
-### Core Actions
+| Component | Current state |
+|-----------|--------------|
+| `actions/checkout@v4` | Confirmed in existing workflows |
+| `actions/setup-python@v5` | Established for pytest CI |
+| Runner: `ubuntu-latest` | All existing workflows |
+| Flask 3.1.3 / Jinja2 3.1.2 | `requirements.txt` |
+| Python 3.12 | Dockerfile + CI |
+| `Task` dataclass | `tasks.py` — has `due_date`, `done`, `created_at` |
+| `storage.py` | Direct JSON serialization; explicit field list in `save_tasks()` |
 
-| Technology | Version | Purpose | Why |
-|------------|---------|---------|-----|
-| `actions/checkout` | `v4` | Check out repository code | v4 is the current stable major; uses Node 20 runtime (v3 uses deprecated Node 16). Existing repo workflows already pin `@v4`. |
-| `actions/setup-python` | `v5` | Install and configure Python | v5 is the current stable major as of mid-2024; adds support for `python-version-file`, better caching via `cache: 'pip'`, and uses Node 20 runtime. v4 still works but v5 is the forward-looking choice. |
+---
 
-**Confidence:** MEDIUM — based on training data (cutoff August 2025). `actions/checkout@v4` is confirmed in the repo's existing `claude-code-review.yml`. `actions/setup-python@v5` was released in 2024 and was current as of the knowledge cutoff; no web verification was possible in this environment.
+## Feature 1: Docker Build + Push to GHCR on Merge to Main
 
-### Runner OS
+### Required GitHub Actions
 
-**Recommendation: `ubuntu-latest`**
+| Action | Version | Purpose | Confidence |
+|--------|---------|---------|------------|
+| `actions/checkout@v4` | v4 | Check out code | HIGH — already in repo |
+| `docker/setup-buildx-action` | v4 | Enable BuildKit (required for `build-push-action`) | HIGH — v4.0.0 released March 2025; same Node 24 runtime cohort as other v4 actions |
+| `docker/login-action` | v4 | Authenticate to ghcr.io using GITHUB_TOKEN | HIGH — v4.0.0 released March 2025; current stable |
+| `docker/metadata-action` | v6 | Generate image tags (commit SHA + latest) | HIGH — v6.0.0 released March 2025; current stable |
+| `docker/build-push-action` | v7 | Build and push the image | HIGH — v7.0.0 released March 2025; current stable |
 
-Rationale:
-- All four existing workflows in this repo use `ubuntu-latest` — consistency matters for developer familiarity.
-- The production Dockerfile is Linux-based, so test results on Ubuntu are meaningful.
-- Ubuntu runners are faster to provision and cheaper in GitHub Actions billing than Windows or macOS.
-- No Windows-specific or macOS-specific code exists in this app; the test suite imports standard Python and the app's own modules.
+**Note:** All four Docker actions jumped to Node 24 runtime in the March 2025 release wave. Using v4/v6/v7 as listed above keeps the runtime consistent across actions and avoids deprecation warnings about older Node versions.
 
-**Confidence:** HIGH — this is a well-established pattern with no ambiguity.
+### Authentication to ghcr.io
 
-### Python Version
-
-**Recommendation: `python-version: "3.12"`**
-
-Rationale:
-- The Dockerfile and production runtime use Python 3.12 (confirmed in PROJECT.md).
-- Matching CI to production prevents false passes: a test could pass on 3.11 but fail on 3.12 due to stdlib changes or deprecation warnings treated as errors.
-- Pin the minor version (`"3.12"`) rather than just major (`"3"`) to avoid surprise upgrades when 3.13 becomes `latest`.
-
-**Confidence:** HIGH — derived directly from the project's stated requirements.
-
-### Dependency Installation
-
-**Recommendation: `pip install -r requirements.txt pytest`**
-
-Rationale:
-- `requirements.txt` pins the four runtime deps (Flask, Werkzeug, Jinja2, Gunicorn). These must be installed so `from tasks import Task` and Flask imports in future route tests work.
-- `pytest` is not in `requirements.txt` (confirmed by inspection — file contains only Flask/Werkzeug/Jinja2/Gunicorn). Install it explicitly alongside the requirements file rather than in a separate step, keeping the install step to a single `pip install` call.
-- Do NOT use `pip install pytest` alone — that would omit Flask and break any test that imports the app.
-- Do NOT use `pip install .[test]` — this project has no `pyproject.toml` or `setup.py`; there is no installable package.
-- Add `pip install --upgrade pip` before the install step. pip upgrades are free and prevent hash-verification warnings on older bundled pip versions that can make CI logs noisy.
-
-**Confidence:** HIGH — derived from direct inspection of `requirements.txt` and the test file's import structure.
-
-### pip Caching
-
-**Recommendation: Enable via `setup-python` built-in cache**
+Use `GITHUB_TOKEN`. No PAT or external secret needed.
 
 ```yaml
-- uses: actions/setup-python@v5
+- uses: docker/login-action@v4
   with:
-    python-version: "3.12"
-    cache: "pip"
+    registry: ghcr.io
+    username: ${{ github.actor }}
+    password: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-Rationale:
-- `actions/setup-python@v5` supports `cache: 'pip'` natively. It caches the pip download cache keyed on `requirements.txt` hash, so re-runs only download packages when deps change.
-- This typically saves 10-30 seconds per run for a small requirements file — low effort, consistent benefit.
-- No separate `actions/cache` step needed; the built-in is simpler and less error-prone.
-
-**Confidence:** HIGH — this is a well-documented feature of setup-python v4+.
-
-### pytest Flags
-
-**Recommendation: `pytest -v`**
-
-Rationale:
-- `-v` (verbose) prints each test name and its PASS/FAIL status in the GitHub Actions log. Without it, only a summary line appears, making it harder to identify which test failed when viewing inline in the PR checks UI.
-- Do NOT add `--tb=short` or `--tb=long` explicitly — pytest's default traceback format is fine and keeps logs readable.
-- Do NOT add `-x` (stop on first failure) — the goal is visibility of all failures, not fast-fail.
-- Do NOT add `--cov` coverage flags yet — PROJECT.md explicitly defers coverage reporting to a future phase.
-- No `pytest.ini` or `pyproject.toml` exists in the repo, so pytest will auto-discover tests in `tests/` by default. No `--rootdir` or `testpaths` config is required.
-
-**Confidence:** HIGH — derived from the project's stated goal (visibility, not enforcement) and the test file structure.
-
-### Trigger
-
-**Recommendation: `on: pull_request`**
-
-Rationale:
-- PROJECT.md requirement: "A GitHub Actions workflow runs pytest on every pull request."
-- Use the default event (no `types:` filter) to catch `opened`, `synchronize`, and `reopened` automatically.
-- Do NOT add `on: push` — that would run tests on direct pushes to main too. The scope is PR visibility only; push coverage can be added in a later phase.
-- The existing `claude-code-review.yml` uses `pull_request` with explicit `types:` — this workflow can omit `types:` for simplicity since we want all PR activity.
-
-**Confidence:** HIGH — directly derived from project requirements.
-
-### Permissions
-
-**Recommendation: Minimal — omit explicit `permissions` block or use read-only**
+The workflow job **must** declare `packages: write` permission or the push will be rejected with a 403. The `contents: read` permission is also required for checkout.
 
 ```yaml
 permissions:
   contents: read
+  packages: write
 ```
 
-Rationale:
-- pytest only reads source files. No permission to write to pull requests, deploy, or access secrets is needed.
-- Omitting `permissions` inherits the repository default (typically read-only for public repos, broader for private). Explicitly setting `contents: read` is the safest and most auditable choice.
-- No `id-token: write` or `pull-requests: write` needed — this workflow does not post review comments or deploy.
+**Confidence:** HIGH — this is the canonical GHCR authentication pattern documented by GitHub. GITHUB_TOKEN is scoped to the repository, so no manual secret rotation is required.
 
-**Confidence:** HIGH — standard security principle, no ambiguity.
+### Image Tagging Strategy
+
+Use `docker/metadata-action@v6` with two tag types:
+
+```yaml
+- id: meta
+  uses: docker/metadata-action@v6
+  with:
+    images: ghcr.io/nguyenbuitk/claude-demo
+    tags: |
+      type=sha
+      type=raw,value=latest,enable={{is_default_branch}}
+```
+
+- `type=sha` produces `ghcr.io/nguyenbuitk/claude-demo:sha-<7-char-commit>` (e.g., `sha-860c190`).
+- `type=raw,value=latest,enable={{is_default_branch}}` only applies the `latest` tag when the triggering branch is the repository's default branch (main). This prevents PRs from accidentally overwriting `latest`.
+
+**Confidence:** HIGH — verified against official Docker docs at `docs.docker.com/build/ci/github-actions/manage-tags-labels/`.
+
+### Canonical Workflow Skeleton
+
+```yaml
+name: docker-publish
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ghcr.io/nguyenbuitk/claude-demo
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+```
+
+This must be a **new workflow file** (e.g., `.github/workflows/docker-publish.yml`), separate from the pytest CI workflow. Do not mix test-on-PR and build-on-merge logic into a single file.
+
+---
+
+## Feature 2: Deadline Highlighting (Overdue = Red, Due ≤3 Days = Yellow)
+
+### Approach: Pure Python + Jinja2 + CSS Classes. No JavaScript.
+
+The existing stack (Flask + Jinja2 + plain HTML) is sufficient. No new libraries are needed.
+
+#### Python side (in `web.py` route, before rendering)
+
+Compute deadline status in the route handler and pass it to the template, or compute it inline in Jinja2 using `now()`. The cleanest approach is to pass today's date as a template variable and compare in Jinja2 using its built-in filters.
+
+Pass `today` and `deadline_delta` as context:
+
+```python
+from datetime import date, timedelta
+
+# In the GET / route:
+today = date.today()
+deadline_soon = today + timedelta(days=3)
+return render_template("index.html", tasks=tasks, today=today, deadline_soon=deadline_soon, ...)
+```
+
+#### Jinja2 template logic
+
+```jinja2
+{% set status_class = "" %}
+{% if task.due_date %}
+  {% if task.due_date < today.isoformat() %}
+    {% set status_class = "overdue" %}
+  {% elif task.due_date <= deadline_soon.isoformat() %}
+    {% set status_class = "due-soon" %}
+  {% endif %}
+{% endif %}
+<tr class="{{ status_class }}">
+```
+
+String comparison of ISO date strings (`YYYY-MM-DD`) is lexicographically correct — no date parsing needed in the template.
+
+#### CSS (in `templates/index.html` or a linked stylesheet)
+
+```css
+tr.overdue   { background-color: #fde8e8; }  /* light red  */
+tr.due-soon  { background-color: #fefce8; }  /* light yellow */
+```
+
+**Do NOT add:** any JavaScript date libraries, moment.js, day.js, or any new npm/Python package. This is a pure server-rendered comparison.
+
+**Confidence:** HIGH — Jinja2 3.1.x supports variable assignment (`{% set %}`), ISO string comparison is reliable, and no new dependencies are introduced.
+
+---
+
+## Feature 3: Task Completion History
+
+### Does `Task` need a `completed_at` field?
+
+**Yes. Add `completed_at: Optional[str] = None` to the `Task` dataclass.**
+
+Rationale: The existing `done: bool` field only records *whether* a task is complete, not *when*. A completion history view requires the timestamp. Without it, there is no data to display.
+
+**Proposed change to `tasks.py`:**
+
+```python
+completed_at: Optional[str] = None   # ISO datetime, set when task is marked done
+```
+
+Update the `complete()` method to set it:
+
+```python
+def complete(self):
+    self.done = True
+    self.completed_at = datetime.now().isoformat()
+```
+
+### Storage changes required
+
+**`save_tasks()` must be updated** to include `completed_at` in the serialized dict. The current implementation uses an explicit field list — any new field must be added manually or the data will be silently dropped on the next save.
+
+```python
+# Add to the dict in save_tasks():
+"completed_at": task.completed_at,
+```
+
+**`load_tasks()` is backward-compatible.** `Task(**item)` will accept dicts without `completed_at` because the field has a default of `None`. Existing `tasks.json` records will load without error and `completed_at` will be `None`.
+
+**No migration script is needed** — old records simply show no completion date.
+
+### Filtering in the route
+
+The existing `?show_done=0` filter hides completed tasks. The new history view is a separate route (e.g., `GET /history`) that returns only tasks where `done is True`, sorted by `completed_at` descending. No new storage mechanism needed — load all tasks, filter in Python.
+
+**Confidence:** HIGH — derived from direct inspection of `tasks.py` and `storage.py`.
+
+---
+
+## What NOT to Add
+
+| Item | Reason to skip |
+|------|----------------|
+| Any JS framework (htmx, Alpine, React) | All three features are server-rendered; no interactivity needed |
+| A database (SQLite, Postgres) | Out of scope; JSON file storage is the stated design |
+| `python-dateutil` or `arrow` | ISO string comparison in Jinja2 is sufficient for highlighting; no parsing library needed |
+| `pytest-cov` or coverage reporting | Explicitly deferred in PROJECT.md |
+| A separate `completed_tasks.json` | Unnecessary split; filter in-memory at query time |
+| Docker layer caching in the workflow | Nice-to-have; adds complexity (cache action config); defer to a later phase |
 
 ---
 
@@ -118,59 +232,34 @@ Rationale:
 
 | Category | Recommended | Alternative | Why Not |
 |----------|-------------|-------------|---------|
-| Runner OS | `ubuntu-latest` | `windows-latest` | No Windows-specific code; slower provisioning; inconsistent with existing workflows |
-| Runner OS | `ubuntu-latest` | `macos-latest` | 10x billing cost multiplier on GitHub Actions; no macOS-specific reason |
-| Python setup | `actions/setup-python@v5` | `deadsnakes/action` or Docker container | No need for unusual Python builds; setup-python is the idiomatic, well-supported choice |
-| Dep install | `pip install -r requirements.txt pytest` | `pip install pytest` only | Would break tests that import Flask/Werkzeug |
-| Dep install | `pip install -r requirements.txt pytest` | `pip install .[test]` | No `pyproject.toml` or `setup.py` exists in repo |
-| Caching | `cache: "pip"` in setup-python | `actions/cache@v4` manually | Built-in is simpler; same outcome |
-| pytest flags | `-v` | `--tb=short` | Default traceback is fine; `-v` alone adds the most value per character |
-| Trigger | `pull_request` | `pull_request` + `push` | PROJECT.md scopes this to PRs only |
+| GHCR auth | `GITHUB_TOKEN` | PAT stored as secret | PAT requires rotation, broader scope, manual setup; GITHUB_TOKEN is zero-config and scoped |
+| Image tagging | `type=sha` + `type=raw,value=latest` | Manual `${{ github.sha }}` | `docker/metadata-action` handles OCI labels, multi-platform metadata, and edge cases automatically |
+| Deadline comparison | ISO string comparison in Jinja2 | Parse `datetime` in template | Jinja2 has no `datetime.strptime`; string comparison is simpler and correct for `YYYY-MM-DD` |
+| Completion timestamp | New `completed_at` field | Derive from `updated_at` | No `updated_at` field exists; adding `completed_at` is explicit and unambiguous |
+| History view | New `GET /history` route | Reuse `GET /` with filter param | Separate route is cleaner; avoids complicating the existing `?show_done` filter logic |
 
 ---
 
-## Canonical Workflow Skeleton
+## Summary of Required Changes
 
-```yaml
-name: pytest
+| File | Change |
+|------|--------|
+| `.github/workflows/docker-publish.yml` | New file — GHCR build+push workflow |
+| `tasks.py` | Add `completed_at: Optional[str] = None`; update `complete()` to set it |
+| `storage.py` | Add `"completed_at": task.completed_at` to `save_tasks()` dict |
+| `web.py` | Pass `today` + `deadline_soon` to template; add `GET /history` route |
+| `templates/index.html` | Add CSS classes for `.overdue` / `.due-soon`; add Jinja2 conditional logic; add history view |
 
-on:
-  pull_request:
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt pytest
-
-      - name: Run tests
-        run: pytest -v
-```
-
-This skeleton satisfies all five active requirements from PROJECT.md:
-1. Runs pytest on every PR — `on: pull_request`
-2. Results visible in PR checks UI — Actions natively reports job pass/fail; `-v` makes output readable
-3. Does not block merging — no branch protection rules; workflow is informational only
-4. Installs deps from `requirements.txt` — `pip install -r requirements.txt pytest`
-5. Runs on Python 3.12 — `python-version: "3.12"`
+No new Python packages. No new npm packages. No changes to `requirements.txt`.
 
 ---
 
 ## Sources
 
-- Codebase inspection: `requirements.txt`, `tests/test_tasks.py`, `.github/workflows/claude-code-review.yml`, `.planning/PROJECT.md`
-- Training knowledge (cutoff August 2025): `actions/setup-python` v5 release, pip caching behavior, pytest flags — **MEDIUM confidence**, web verification not available in this environment
-- `actions/checkout@v4` confirmed in existing repo workflow — HIGH confidence
+- Codebase inspection: `tasks.py`, `storage.py`, `requirements.txt`, `Dockerfile`, `.github/workflows/`
+- [docker/build-push-action releases — v7.0.0 confirmed](https://github.com/docker/build-push-action/releases) — HIGH confidence
+- [docker/login-action releases — v4.0.0 confirmed](https://github.com/docker/login-action/releases) — HIGH confidence
+- [docker/metadata-action releases — v6.0.0 confirmed](https://github.com/docker/metadata-action/releases) — HIGH confidence
+- [docker/setup-buildx-action releases — v4.0.0 confirmed](https://github.com/docker/setup-buildx-action/releases) — HIGH confidence
+- [Docker docs: Manage tags and labels with GitHub Actions](https://docs.docker.com/build/ci/github-actions/manage-tags-labels/) — HIGH confidence
+- [GitHub Actions: Pushing container images to GHCR](https://dev.to/willvelida/pushing-container-images-to-github-container-registry-with-github-actions-1m6b) — MEDIUM confidence (community article, corroborated by official patterns)

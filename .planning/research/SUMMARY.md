@@ -1,17 +1,17 @@
 # Project Research Summary
 
-**Project:** Claude Demo — CI/CD Pipeline (pytest on PR)
-**Domain:** GitHub Actions CI workflow for Python/Flask
+**Project:** Claude Demo — v1.0 (Docker CI + Deadline Highlighting + Completion History)
+**Domain:** Flask task manager — CI/CD pipeline + UX feature expansion
 **Researched:** 2026-03-23
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project adds a single GitHub Actions workflow file (`.github/workflows/test.yml`) that runs `pytest` on every pull request against the existing Flask/Python 3.12 app. The approach is deliberately minimal: one job, no matrix, no branch protection, no test reporters — just test execution with results visible in the PR checks UI. All four parallel research threads converge on an identical ~20-line YAML file as the complete deliverable.
+This milestone adds three independent workstreams to an existing Flask task manager: a GitHub Actions workflow that runs pytest then builds and pushes a Docker image to GHCR on merge to main; deadline-based row highlighting (red for overdue, amber for due within 3 days); and a completion history view backed by a new `completed_at` timestamp field. All three are genuinely parallel — they touch different files with only minor, non-conflicting overlap in `web.py` and `index.html`.
 
-The recommended implementation installs dependencies via `pip install -r requirements.txt pytest` (pytest is confirmed absent from `requirements.txt`), uses `actions/setup-python@v5` with `python-version: "3.12"` and `cache: "pip"`, and runs `pytest -v`. This matches the production runtime, caches dependencies for speed, and produces readable output in the GitHub Actions log without any marketplace dependencies or added complexity.
+The recommended approach is a single `ci.yml` workflow with two chained jobs (`test` then `build-and-push`), pure server-side Jinja2/CSS for deadline highlighting with no new dependencies, and a `completed_at: Optional[str] = None` field added atomically across four locations (`Task` dataclass, `complete()` method, `save_tasks()` serializer, and the new `/history` route). The existing stack is sufficient for all three features — no new Python packages, no JavaScript frameworks, no database changes.
 
-The key risks are all pre-empted by the recommended approach: forgetting to install pytest alongside `requirements.txt` would cause immediate failure, and using the wrong Python version would silently hide compatibility issues. Both are avoided by the canonical YAML below. One latent risk — `storage.py` file I/O has no test isolation — is dormant for this milestone but must be addressed before any storage tests are added in a future phase.
+The highest-risk area is the `completed_at` field: four coupled code locations must all be updated together, and missing any one produces silent data loss rather than a crash. The second-highest risk is the GHCR workflow: the `packages: write` permission must be explicitly declared or the push fails with a 403. Both risks are straightforward to prevent with disciplined implementation.
 
 ---
 
@@ -19,125 +19,122 @@ The key risks are all pre-empted by the recommended approach: forgetting to inst
 
 ### Recommended Stack
 
-All four research files agree on the same action versions and runner. The existing repo workflows confirm `actions/checkout@v4` is already in use; `actions/setup-python@v5` is the current stable major as of the knowledge cutoff (August 2025) and should be verified before implementation.
+No new dependencies are required. The existing Flask 3.1.3 / Jinja2 3.1.2 / Python 3.12 stack handles all three features natively.
 
 **Core technologies:**
-- `actions/checkout@v4` — repo checkout — confirmed in existing `.github/workflows/claude-code-review.yml`
-- `actions/setup-python@v5` — Python 3.12 install + pip cache — MEDIUM confidence on exact version; verify latest major tag
-- `ubuntu-latest` — runner OS — consistent with all four existing workflows in this repo
-- `pip install -r requirements.txt pytest` — dependency install — HIGH confidence; derived from direct inspection of `requirements.txt`
-- `pytest -v` — test runner with verbose output — HIGH confidence; no `pytest.ini` needed, auto-discovers `tests/`
+- `docker/setup-buildx-action@v4` + `docker/login-action@v4` + `docker/metadata-action@v6` + `docker/build-push-action@v7` — Docker CI pipeline; all Node 24 runtime cohort released March 2025
+- `GITHUB_TOKEN` with `permissions: packages: write` — GHCR authentication; zero-config, no PAT required
+- `date.today() + timedelta(days=3)` passed as `today_plus_3` to Jinja2 template — deadline window computation; no new date library needed
+- `completed_at: Optional[str] = None` on `Task` dataclass — completion timestamp; backward-compatible with existing `tasks.json`
+
+**Version conflict to resolve:** STACK.md recommends `docker/login-action@v4` / `docker/metadata-action@v6` / `docker/build-push-action@v7` (March 2025 releases). FEATURES.md references the older `@v3` / `@v5` / `@v5` versions. Use STACK.md versions — they are verified against release notes.
 
 ### Expected Features
 
-**Must have (table stakes):**
-- `on: pull_request` trigger — required for results to appear in the PR checks UI
-- `python-version: "3.12"` — must match production Dockerfile runtime
-- Install from `requirements.txt` — Flask/Werkzeug/Jinja2/Gunicorn are required for test imports
-- Install `pytest` explicitly — it is not in `requirements.txt`
-- `runs-on: ubuntu-latest` — consistent with all existing repo workflows
+**Must have (table stakes for v1.0):**
+- Overdue row highlight (red `#fde8e8`) for tasks where `due_date < today` and `not done`
+- Soon-due row highlight (amber `#fff3cd`) for tasks where `due_date` in `[today, today+3]` and `not done`
+- No deadline highlighting for `done=True` tasks regardless of `due_date`
+- `GET /history` route — completed tasks sorted by `completed_at` descending, read-only
+- `completed_at` timestamp shown in history view; "—" for legacy tasks with `None`
+- Docker build and push triggered only on merge to main, gated behind passing tests
+- SHA tag + `latest` tag both pushed to `ghcr.io/nguyenbuitk/claude-demo`
 
-**Should have (zero added complexity):**
-- `cache: "pip"` in `setup-python` — saves ~20-40s per run, one extra YAML line
-- `pytest -v` verbose flag — makes individual test names visible in the GitHub log
-- Concurrency group — cancels stale runs on rapid pushes to the same PR
+**Nice-to-have (include only if trivial):**
+- Text label in Due Date cell ("OVERDUE" / "Soon") — ~3 Jinja lines, accessibility benefit for colorblind users
+- Build cache (`cache-from: type=gha`) — two lines in `docker/build-push-action`, meaningful speedup
+- Completed task count on history page — `{{ tasks | length }}` in template, essentially free
 
-**Defer (v2+):**
-- Coverage reporting — explicitly out of scope in PROJECT.md
-- Branch protection / required checks — visibility-only is the stated goal for v1
-- Matrix builds across Python versions — app targets exactly 3.12
-- JUnit XML + test reporter action — adds marketplace dependency; defer until test suite grows
-- `workflow_dispatch` trigger — not needed for pure CI
+**Defer to v2+:**
+- Countdown text ("2 days left") — per-task arithmetic, adds route complexity not justified in v1
+- History pagination — JSON storage loads all tasks regardless; infrastructure overhead exceeds benefit at current scale
+- Task reopen/undo — explicitly out of scope in PROJECT.md
+- Multi-platform Docker build (`linux/amd64,linux/arm64`) — doubles build time; no ARM deployment target stated
 
 ### Architecture Approach
 
-Create a new file at `.github/workflows/test.yml`. Do not extend any existing workflow — the four existing workflows serve unrelated purposes (Claude code review, hello world demo, main demo). Separation of concerns: test CI is independent of review automation and demo workflows.
+All three features integrate into the existing flat architecture (no service layer, direct route-to-storage calls). DevOps is fully isolated to a new workflow file. Deadline highlighting adds a `days_until` Jinja2 template filter to `web.py` and CSS/logic changes to `index.html`. Completion history adds a dedicated `history.html` template and `/history` route — a new file rather than a third mode in the already-222-line `index.html`.
 
-**Workflow structure:**
-1. Trigger — `pull_request` (opened, synchronize, reopened) + optionally `push` to `main`
-2. Single job `test` on `ubuntu-latest` with `permissions: contents: read`
-3. Checkout step using `actions/checkout@v4`
-4. Python setup step using `actions/setup-python@v5` with version pin and pip cache
-5. Install step combining `requirements.txt` and `pytest` in one command
-6. Test step running `pytest -v`
-
-The ARCHITECTURE.md researcher recommends also triggering on `push` to `main` to catch direct merges; the STACK.md researcher recommends omitting it for now (PROJECT.md scopes to PR-only). This is the one open decision — see below.
+**Major components touched:**
+1. `.github/workflows/ci.yml` (new) — two-job pipeline: `test` (all triggers) then `build-and-push` (main push only, `needs: test`)
+2. `tasks.py` + `storage.py` — `completed_at` field; must be updated as an atomic coupled pair
+3. `web.py` — `days_until` filter registration (~6 lines), `GET /history` route, `today_plus_3` in template context
+4. `templates/index.html` — CSS class updates, Jinja row logic extension, "History" nav link (~1 line)
+5. `templates/history.html` (new) — read-only completed task log
 
 ### Critical Pitfalls
 
-1. **pytest missing from requirements.txt** — use `pip install -r requirements.txt pytest` in a single command; do not run `pip install pytest` alone or the Flask imports in tests will fail
-2. **Python version not pinned** — use `python-version: "3.12"` explicitly; `ubuntu-latest` does not default to 3.12 and `"3.x"` would follow minor upgrades silently
-3. **Wrong trigger** — `on: push` alone does not populate the PR checks UI; `on: pull_request` is required for results to appear where reviewers see them
-4. **No test isolation for storage.py** — `storage.py` hardcodes `tasks.json` at the repo root; dormant now but will cause flaky tests the moment any storage test is added; fix with `monkeypatch`/`tmp_path` when that time comes
-5. **sys.path boilerplate spreading** — `test_tasks.py` manually inserts repo root into `sys.path`; adding a root-level `conftest.py` now prevents every future test file from needing the same boilerplate
+1. **`completed_at` without `= None` default crashes `load_tasks()` on existing data** — All existing `tasks.json` records lack the key; `Task(**item)` raises `TypeError` at startup. Fix: define as `completed_at: Optional[str] = None`. No migration script needed.
+
+2. **`packages: write` absent from workflow job** — `GITHUB_TOKEN` default does not grant package write access; GHCR push returns HTTP 403. Fix: explicitly declare `permissions: contents: read` and `packages: write` in the build job.
+
+3. **`save_tasks()` silently drops `completed_at`** — The serializer uses an explicit field list, not `dataclasses.asdict()`. Adding the dataclass field without updating the serializer dict means timestamps are never persisted; the bug is invisible until a page refresh. Fix: treat `Task` field additions and `save_tasks()` updates as an atomic change.
+
+4. **`complete()` not updated — `completed_at` is always `None`** — The `/done/<id>` route calls `task.complete()` directly. If `complete()` is not updated, the history feature is structurally present but produces no useful data. Fix: update `complete()` at the same time as the dataclass field.
+
+5. **`due_date is None` comparison crash in template** — Most tasks have no due date. Any Jinja comparison of `None` against a date string raises `TypeError` (500 error on the index page). Fix: always guard with `{% if task.due_date and task.due_date < today %}`.
 
 ---
 
-## Recommended Workflow YAML
+## Parallelism Assessment
 
-This is the complete deliverable for Phase 1. All research threads converge on this structure:
+**All three workstreams are confirmed genuinely independent.** No workstream depends on a change from another, and no workstream blocks another from starting.
 
-```yaml
-name: Tests
+| Workstream | Files exclusively owned | Files shared | Conflict risk |
+|------------|------------------------|--------------|---------------|
+| DevOps (ci.yml) | `.github/workflows/ci.yml` | None | None |
+| Dev 1 (deadline highlighting) | — | `web.py` (filter, near top), `index.html` (style block + tbody logic) | Low |
+| Dev 2 (completion history) | `tasks.py`, `storage.py`, `templates/history.html` | `web.py` (route, near bottom), `index.html` (header nav, 1 line) | Low |
 
-on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+Shared-file conflicts are low-risk because the two workstreams touch different sections: Dev 1 modifies the `<style>` block and `<tbody>` row logic in `index.html`; Dev 2 adds one line to the `<header>`. In `web.py`, Dev 1 adds a template filter near the top and Dev 2 adds a route near the bottom.
 
-concurrency:
-  group: tests-${{ github.ref }}
-  cancel-in-progress: true
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: "pip"
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt pytest
-
-      - name: Run tests
-        run: pytest -v
-```
+**Recommended merge order** (even when developed in parallel): merge DevOps first so the CI gate is in place before app feature branches land on main.
 
 ---
 
 ## Implications for Roadmap
 
-This project is a single-phase deliverable. All five active requirements from PROJECT.md are satisfied by the workflow above. There is no meaningful second phase until the team decides to expand scope.
+### Phase 1: Docker CI Pipeline
 
-### Phase 1: pytest CI Workflow
-**Rationale:** All work is additive — one new file, no changes to existing code or workflows.
-**Delivers:** Automated test execution on every PR, results visible in the PR checks UI.
-**Addresses:** All five active requirements in PROJECT.md.
-**Avoids:** Pitfalls 1, 2, 3 (all blockers) by construction of the YAML.
-**Optional additions:** `conftest.py` at repo root (pitfall 5 prevention); concurrency group (stale run cancellation).
+**Rationale:** Zero app code changes; entirely isolated to a new workflow file. Lowest risk, and establishing the `needs: test` gate before app changes merge is the correct sequencing.
+**Delivers:** pytest on every PR; Docker image pushed to GHCR (`latest` + SHA tag) on every merge to main.
+**Implements:** `.github/workflows/ci.yml` with `test` job (all triggers) and `build-and-push` job (main push only, `needs: test`).
+**Avoids:** Pitfall 2 (missing `packages: write`), Pitfall 4 (build without test gate), Pitfall 3 (uppercase image tag — lowercase the owner expression).
+**Research flag:** None needed — canonical GitHub Actions + GHCR pattern, verified against official Docker and GitHub docs.
 
-### Phase 2 (Future): Expand Test Coverage
-**Rationale:** Deferred; depends on team deciding to write tests for `storage.py` or Flask routes.
-**Prerequisite:** Pitfall 4 (storage.py isolation) must be addressed before any storage tests land.
-**May add:** Coverage reporting, branch protection rules, JUnit XML output.
+### Phase 2: Deadline Highlighting
 
-### Research Flags
+**Rationale:** No data model changes required. `due_date` already exists on `Task`; `today` is already passed to the template. The entire change is presentational: one filter registration, one new CSS class, updated Jinja row logic. Minimal blast radius.
+**Delivers:** Red row for overdue tasks, amber row for tasks due within 3 days; no highlight for completed tasks.
+**Implements:** `days_until` Jinja2 filter in `web.py`; `.overdue` (red) and `.due-soon` (amber) CSS in `index.html`; extended row class Jinja logic; `today_plus_3` passed from route.
+**Avoids:** Pitfall 5 (None comparison crash), Pitfall 9 (CSS specificity — test overdue+done combination visually).
+**Research flag:** None needed — server-side Jinja2 with ISO string comparison, established pattern.
 
-Standard patterns, no further research needed:
-- **Phase 1:** GitHub Actions + pytest CI is one of the most well-documented patterns in the ecosystem. The YAML is fully specified by research. Implement directly.
+### Phase 3: Completion History
 
-Needs research before starting:
-- **Phase 2 (if pursued):** Flask route testing patterns (`test_client`), `tmp_path` fixture usage for file-based storage, coverage tooling integration.
+**Rationale:** Most invasive workstream due to data model change. Four locations must be updated atomically. Implement all four changes in a single commit to avoid any window where the field exists in the dataclass but not the serializer.
+**Delivers:** `completed_at` timestamp recorded on task completion; `GET /history` read-only view sorted by completion date descending; "History" nav link in header.
+**Implements:** `Task.completed_at` field + `complete()` method update + `save_tasks()` serializer update + `/history` route + `history.html` template + nav link in `index.html` header.
+**Avoids:** Pitfall 1 (no default = crash on load), Pitfall 3 (field without serializer update), Pitfall 4 (complete() not updated), Pitfall 10 (filter by both `done=True` and `completed_at is not None`).
+**Research flag:** None needed — implementation derived from direct codebase inspection, HIGH confidence.
+
+### Phase Ordering Rationale
+
+- All three phases can be developed in parallel and are suitable for parallel workstreams.
+- If serial order is required: DevOps first (zero risk, establishes CI baseline), Deadline Highlighting second (presentational only), Completion History last (data model change, highest internal coupling).
+- The four-location coupling in Phase 3 (`Task` field, `complete()`, `save_tasks()`, `/history`) must be treated as a single atomic changeset — any partial deployment produces silent data loss.
+
+---
+
+## Open Questions / Decisions Before Implementation
+
+1. **Action version conflict:** STACK.md specifies `docker/login-action@v4` / `docker/metadata-action@v6` / `docker/build-push-action@v7`. FEATURES.md references `@v3` / `@v5` / `@v5`. Use STACK.md versions — confirmed against March 2025 release notes.
+
+2. **Workflow file: one or two?** ARCHITECTURE.md recommends a single `ci.yml` combining `test` and `build-and-push` jobs. FEATURES.md recommends a separate `docker-publish.yml`. Recommendation: single `ci.yml` — both jobs share a trigger and appear as a unified pipeline in the PR checks UI.
+
+3. **CSS class name for soon-due:** STACK.md uses `.due-soon`, ARCHITECTURE.md uses `.warning`, FEATURES.md uses `.soon-due`. Pick one name before writing. Recommendation: `.due-soon` (semantic, matches the feature description).
+
+4. **UTC timezone for deadline comparison:** Server runs UTC; users in negative UTC offsets may see tasks flagged overdue before end-of-day. Decision for v1: accept UTC assumption, document it. Do not add JavaScript date handling in v1.
 
 ---
 
@@ -145,28 +142,35 @@ Needs research before starting:
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | MEDIUM | `actions/checkout@v4` confirmed in repo; `actions/setup-python@v5` is training knowledge (cutoff Aug 2025) — verify latest major tag before implementing |
-| Features | HIGH | Derived from direct codebase inspection (`requirements.txt`, `tests/test_tasks.py`, PROJECT.md) |
-| Architecture | HIGH | Single new file; no integration complexity; consistent with existing workflow patterns in repo |
-| Pitfalls | HIGH | Confirmed by direct inspection: pytest absent from `requirements.txt`, no `conftest.py`, `storage.py` hardcodes file path |
+| Stack | HIGH | Docker action versions verified against March 2025 release notes; Python stack confirmed by direct `requirements.txt` inspection |
+| Features | HIGH | Derived from direct inspection of `tasks.py`, `storage.py`, `web.py`, `templates/index.html` |
+| Architecture | HIGH | Direct source inspection; overdue CSS class is partially scaffolded already in `index.html` lines 93-94 |
+| Pitfalls | HIGH | Grounded in specific code lines (`storage.py` line 19 `Task(**item)`, explicit field list in `save_tasks()`); corroborated by GitHub official docs |
 
 **Overall confidence:** HIGH
 
-### Gaps to Address
+### Gaps to Address During Implementation
 
-- **`actions/setup-python` version:** Research used training knowledge (cutoff August 2025). Verify the latest stable major version tag on the [GitHub Marketplace](https://github.com/marketplace/actions/setup-python) before writing the workflow. `v5` is almost certainly still correct but takes 30 seconds to confirm.
-- **`push` to `main` trigger:** ARCHITECTURE.md recommends adding it; STACK.md recommends omitting it. PROJECT.md scopes to PR-only. Decision: omit for v1, add in a future phase when the team wants main-branch visibility. This is logged in the YAML above as a comment opportunity.
-- **conftest.py:** PITFALLS.md flags the missing `conftest.py` as a low-effort improvement. The team should decide whether to include it in Phase 1 alongside the workflow file. Recommended: yes, since it costs one file and prevents future boilerplate.
+- No automated tests cover `storage.py` — the `completed_at` persistence change has no test coverage. Minimum acceptance test: complete a task, restart server, verify `/history` shows the timestamp.
+- GHCR workflow cannot be fully validated without an actual merge to main. Validate in two steps: open a PR to confirm the `test` job appears in the PR checks UI, then merge to verify the `build-and-push` job pushes the image.
 
 ---
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- Codebase inspection: `requirements.txt`, `tests/test_tasks.py`, `.github/workflows/claude-code-review.yml`, `.planning/PROJECT.md`, `.planning/codebase/CONCERNS.md`
+- Codebase direct inspection: `tasks.py`, `storage.py`, `web.py`, `templates/index.html`, `.github/workflows/*.yml`, `Dockerfile`, `requirements.txt`
+- [docker/build-push-action v7.0.0 releases](https://github.com/docker/build-push-action/releases) — action version
+- [docker/login-action v4.0.0 releases](https://github.com/docker/login-action/releases) — action version
+- [docker/metadata-action v6.0.0 releases](https://github.com/docker/metadata-action/releases) — action version
+- [GitHub Docs: Controlling permissions for GITHUB_TOKEN](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/controlling-permissions-for-github_token) — `packages: write` requirement
+- [GitHub Docs: Working with the Container registry](https://docs.github.com/en/packages/working-with-a-github-packages-registry/working-with-the-container-registry) — GHCR authentication pattern
+- [Docker docs: Manage tags and labels with GitHub Actions](https://docs.docker.com/build/ci/github-actions/manage-tags-labels/) — image tagging strategy
+- [GitHub community: Repository name must be lowercase](https://github.com/orgs/community/discussions/27086) — GHCR lowercase enforcement
+- [docker/build-push-action issue #37: lowercase image name](https://github.com/docker/build-push-action/issues/37) — confirmed behavior
 
 ### Secondary (MEDIUM confidence)
-- Training knowledge (cutoff August 2025): `actions/setup-python@v5` release, `cache: "pip"` behavior, pytest auto-discovery, GitHub Actions `pull_request` event semantics
+- [GitHub Actions: Pushing container images to GHCR](https://dev.to/willvelida/pushing-container-images-to-github-container-registry-with-github-actions-1m6b) — community article, corroborated by official patterns
 
 ---
 *Research completed: 2026-03-23*
