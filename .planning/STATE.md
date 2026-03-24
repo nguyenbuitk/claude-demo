@@ -3,7 +3,7 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: Ready to plan
-last_updated: "2026-03-24T07:37:27.301Z"
+last_updated: "2026-03-24T07:51:06Z"
 progress:
   total_phases: 2
   completed_phases: 1
@@ -40,6 +40,8 @@ See: `.planning/PROJECT.md`
 | python:3.12-slim for both Docker stages | Debian-based, avoids Alpine musl libc issues |
 | Python urllib for HEALTHCHECK | Zero extra deps in slim image, no curl needed |
 | Explicit COPY instead of COPY . . | Smaller attack surface, no test/doc leakage into image |
+| Phase branching strategy (branching_strategy=phase) | Stop pushing to main; each GSD phase gets own branch, merged via PR |
+| Minimal PR template (4 sections) | Small learning project, no enterprise overhead |
 
 ## Blockers
 
@@ -54,3 +56,4 @@ None
 - .dockerignore and docker-compose.yml updated (Plan 01-02, commit 2a5d63e)
 - Phase 1 complete: DOC-01, DOC-02, DOC-03 all satisfied
 - **Current focus:** Phase 02 -- CI/CD Pipeline
+- Quick task 260324-kj3: Adopted feature-branch and PR workflow (branching_strategy=phase, PR template, CLAUDE.md Git Workflow section)
