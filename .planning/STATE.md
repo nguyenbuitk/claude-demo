@@ -47,6 +47,12 @@ See: `.planning/PROJECT.md`
 
 None
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260324-kj3 | adopt feature-branch and PR workflow instead of pushing directly to main | 2026-03-24 | bf0d750 | [260324-kj3-adopt-feature-branch-and-pr-workflow-ins](.planning/quick/260324-kj3-adopt-feature-branch-and-pr-workflow-ins/) |
+
 ## Notes
 
 - `Dockerfile` may or may not exist — check before planning Phase 1
