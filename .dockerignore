@@ -1,9 +1,31 @@
+# Version control
 .git
-.pytest_cache
+.gitignore
+
+# Python bytecode and caches
 __pycache__
 *.pyc
 *.pyo
-.planning
-.playwright-mcp
+.pytest_cache
+
+# Test files
 tests
+conftest.py
+test.txt
+
+# Documentation and planning
+*.md
+.planning
+
+# IDE and tooling
 .claude
+.playwright-mcp
+.github
+
+# Docker (not needed inside image)
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Runtime data (should not be baked into image)
+tasks.json
