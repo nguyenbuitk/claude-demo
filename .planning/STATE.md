@@ -2,31 +2,31 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: Ready to plan
-last_updated: "2026-03-24T07:51:06Z"
+status: Milestone complete
+last_updated: "2026-03-24T08:33:42.101Z"
 progress:
   total_phases: 2
-  completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  completed_phases: 2
+  total_plans: 3
+  completed_plans: 3
 ---
 
 # Project State
 
 **Project:** DevOps Learning Roadmap v1.0
-**Updated:** 2026-03-24T05:29:04Z
+**Updated:** 2026-03-24T08:26:00Z
 
 ## Project Reference
 
 See: `.planning/PROJECT.md`
 
 **Core value:** Every concept learned must be practiced hands-on and deployable to production-grade environments.
-**Current focus:** Phase 02 -- CI/CD Pipeline
+**Current focus:** Phase 02 — ci-cd-pipeline
 
 ## Current Status
 
 - Phase 1 (Dockerize): Complete (Plan 01 + Plan 02 done)
-- Phase 2 (CI/CD Pipeline): Not started
+- Phase 2 (CI/CD Pipeline): Plan 01 complete (ci.yml with test + build-and-push jobs)
 
 ## Decisions
 
@@ -42,6 +42,13 @@ See: `.planning/PROJECT.md`
 | Explicit COPY instead of COPY . . | Smaller attack surface, no test/doc leakage into image |
 | Phase branching strategy (branching_strategy=phase) | Stop pushing to main; each GSD phase gets own branch, merged via PR |
 | Minimal PR template (4 sections) | Small learning project, no enterprise overhead |
+| Single ci.yml with two jobs (test + build-and-push) | Per D-01, simpler than separate workflow files |
+| GITHUB_TOKEN only for GHCR auth | Per D-07, no manual secrets needed |
+| docker/metadata-action for tag generation | Per D-06, produces :latest + :sha-<7char> tags |
+
+- [Phase 02]: Single ci.yml with two jobs (test + build-and-push) per D-01
+- [Phase 02]: GITHUB_TOKEN only for GHCR auth, no manual secrets per D-07
+- [Phase 02]: docker/metadata-action for tag generation (:latest + :sha-<7char>) per D-06
 
 ## Blockers
 
@@ -63,3 +70,5 @@ None
 - Phase 1 complete: DOC-01, DOC-02, DOC-03 all satisfied
 - **Current focus:** Phase 02 -- CI/CD Pipeline
 - Quick task 260324-kj3: Adopted feature-branch and PR workflow (branching_strategy=phase, PR template, CLAUDE.md Git Workflow section)
+- Phase 02 Plan 01 complete: CI/CD workflow ci.yml with test + build-and-push jobs (commit 9edcf29)
+- CI-01, CI-02, CI-03, CI-04 requirements satisfied

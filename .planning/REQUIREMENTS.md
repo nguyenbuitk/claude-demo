@@ -13,10 +13,10 @@
 
 ### CI/CD (GitHub Actions)
 
-- [ ] **CI-01**: `test` job runs on every PR and push to main
-- [ ] **CI-02**: `build-and-push` job runs only on push to main, after `test` passes
-- [ ] **CI-03**: Image pushed to `ghcr.io/nguyenbuitk/claude-demo:latest` and `:sha-<commit>`
-- [ ] **CI-04**: Auth uses `GITHUB_TOKEN` only — no manually created secrets
+- [x] **CI-01**: `test` job runs on every PR and push to main
+- [x] **CI-02**: `build-and-push` job runs only on push to main, after `test` passes
+- [x] **CI-03**: Image pushed to `ghcr.io/nguyenbuitk/claude-demo:latest` and `:sha-<commit>`
+- [x] **CI-04**: Auth uses `GITHUB_TOKEN` only — no manually created secrets
 
 ## v2 Requirements (Phase 3-6)
 

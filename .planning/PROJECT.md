@@ -18,9 +18,9 @@ Every concept learned must be practiced hands-on and deployable to production-gr
 
 ### Active
 
-- [ ] Dockerize the Flask app (Dockerfile + health check)
-- [ ] CI/CD: build + push to GHCR on merge to main, gated on tests
-- [ ] Verify full CI pipeline works end-to-end on GitHub
+- [x] Dockerize the Flask app (Dockerfile + health check) — Validated in Phase 1: Dockerize
+- [x] CI/CD: build + push to GHCR on merge to main, gated on tests — Validated in Phase 2: CI/CD Pipeline
+- [ ] Verify full CI pipeline works end-to-end on GitHub (human smoke test pending)
 
 ### Out of Scope (v1.0)
 
@@ -45,8 +45,12 @@ Every concept learned must be practiced hands-on and deployable to production-gr
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| GitHub Actions over GitLab | Repo already on GitHub | — Pending |
-| claude-demo as practice app | Existing app, minimal setup | — Pending |
+| GitHub Actions over GitLab | Repo already on GitHub | Confirmed — Phase 2 complete |
+| claude-demo as practice app | Existing app, minimal setup | Confirmed — Phase 1+2 complete |
+
+## Current State
+
+Phase 2 complete — `ci.yml` with `test` + `build-and-push` jobs deployed. v1.0 milestone (Phase 1-2) fully implemented. Pending: human smoke-test (PR suppression, GHCR image visibility, test-failure gate).
 
 ---
-*Last updated: 2026-03-24 after initialization*
+*Last updated: 2026-03-24*
