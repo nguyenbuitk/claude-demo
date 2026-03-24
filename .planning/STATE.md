@@ -21,7 +21,7 @@ progress:
 See: `.planning/PROJECT.md`
 
 **Core value:** Every concept learned must be practiced hands-on and deployable to production-grade environments.
-**Current focus:** Phase 02 -- CI/CD Pipeline
+**Current focus:** Phase 02 — ci-cd-pipeline
 
 ## Current Status
 
@@ -45,6 +45,10 @@ See: `.planning/PROJECT.md`
 | Single ci.yml with two jobs (test + build-and-push) | Per D-01, simpler than separate workflow files |
 | GITHUB_TOKEN only for GHCR auth | Per D-07, no manual secrets needed |
 | docker/metadata-action for tag generation | Per D-06, produces :latest + :sha-<7char> tags |
+
+- [Phase 02]: Single ci.yml with two jobs (test + build-and-push) per D-01
+- [Phase 02]: GITHUB_TOKEN only for GHCR auth, no manual secrets per D-07
+- [Phase 02]: docker/metadata-action for tag generation (:latest + :sha-<7char>) per D-06
 
 ## Blockers
 

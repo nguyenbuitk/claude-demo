@@ -152,4 +152,3 @@ Phase 3: K8s thực chiến
 Phase 4: AWS foundation + EKS
 Phase 5: Terraform + GitOps
 Phase 6: Monitoring, security, operations
- 
