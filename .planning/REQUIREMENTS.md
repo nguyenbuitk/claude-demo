@@ -3,53 +3,95 @@
 **Defined:** 2026-03-24
 **Core Value:** Every concept learned must be practiced hands-on and deployable to production-grade environments.
 
-## v1 Requirements (Phase 1-2)
+---
 
-### Docker
+## v1.0 Requirements — Docker + CI/CD (Phase 1-2) ✓
+
+### Docker (Phase 1)
 
 - [x] **DOC-01**: Dockerfile at repo root — multi-stage build, non-root user
 - [x] **DOC-02**: `/health` endpoint returns 200 JSON `{"status": "ok"}`
 - [x] **DOC-03**: `HEALTHCHECK` instruction in Dockerfile
 
-### CI/CD (GitHub Actions)
+### CI/CD — GitHub Actions (Phase 2)
 
 - [x] **CI-01**: `test` job runs on every PR and push to main
 - [x] **CI-02**: `build-and-push` job runs only on push to main, after `test` passes
 - [x] **CI-03**: Image pushed to `ghcr.io/nguyenbuitk/claude-demo:latest` and `:sha-<commit>`
 - [x] **CI-04**: Auth uses `GITHUB_TOKEN` only — no manually created secrets
 
-## v2 Requirements (Phase 3-6)
+---
 
-### K8s (Phase 3)
-- K8s manifests (Deployment, Service, Ingress, ConfigMap, Secret)
-- HPA, liveness/readiness probes, resource limits
-- Helm chart packaging
+## v2.0 Requirements — AWS Foundation (Phase 3-4)
 
-### AWS (Phase 4)
-- VPC, EKS cluster, worker nodes, ALB ingress
-- ECR as image registry, IAM roles with least privilege
+> **Approach:** Docker-based deployment via ECS Fargate. K8s deferred.
+> **Infra note:** Phase 3 có thể setup thủ công trên console để hiểu rõ từng service, Phase 5 sẽ Terraform hoá toàn bộ.
 
-### IaC + GitOps (Phase 5)
-- Terraform modules (VPC, EKS, ECR, IAM)
-- S3 backend + DynamoDB lock
-- ArgoCD or Flux for GitOps
+### AWS Networking + Registry (Phase 3)
 
-### Observability (Phase 6)
-- Prometheus + Grafana + Loki/ELK
-- Alerting for CPU, memory, pod restarts, service down
-- Runbook, rollback strategy
+- [ ] **AWS-01**: VPC với public + private subnets trên 2 AZs, IGW, NAT gateway, route tables. Private subnet không có direct internet access.
+- [ ] **AWS-02**: GitHub Actions assume IAM role qua OIDC (không dùng static AWS access key). Role chỉ có permission cần thiết (ECR push, ECS deploy).
+- [ ] **AWS-03**: ECR repository `claude-demo`. Merge to main → CI push image lên ECR với tag `:latest` và `:sha-<commit>` — song song với GHCR.
+- [ ] **AWS-04**: Security groups: ALB SG (443/80 từ internet), ECS SG (từ ALB SG only), RDS SG (5432 từ ECS SG only).
+- [ ] **AWS-05**: Secrets Manager lưu DB password. IAM role của ECS task có quyền đọc secret — không có secret nào trong code hoặc environment variable hardcoded.
 
-## Out of Scope (v1.0)
+### ECS Fargate + RDS + ALB (Phase 4)
 
-| Feature | Reason |
-|---------|--------|
-| GitLab CI | Repo is on GitHub — GitHub Actions simpler for v1 |
-| K8s local (minikube/kind) | Phase 3 |
-| Multi-environment (dev/staging/prod) | Phase 2+ of phases.txt |
+- [ ] **ECS-01**: RDS PostgreSQL trong private subnet. App migrate từ JSON file storage sang PostgreSQL (`storage.py` dùng psycopg2).
+- [ ] **ECS-02**: ECS Fargate cluster, task definition (512 CPU / 1024 MB), service với desired count = 1. Container pull image từ ECR.
+- [ ] **ECS-03**: ALB với listener HTTP:80 (redirect to HTTPS) hoặc HTTP:80 trực tiếp. Target group health check `/health` → 200. App accessible qua ALB DNS.
+- [ ] **ECS-04**: Merge to main → GitHub Actions chạy `aws ecs update-service --force-new-deployment` → ECS rolling update tự động.
+- [ ] **ECS-05**: ECS service có minimum healthy percent = 100, maximum = 200. Health check grace period đủ để app khởi động. Task fail → ECS tự replace.
+
+---
+
+## v3.0 Requirements — Infrastructure as Code (Phase 5)
+
+> **Goal:** Reproducible infra. `terraform destroy && terraform apply` = app hoạt động bình thường.
+
+### Terraform (Phase 5)
+
+- [ ] **TF-01**: Toàn bộ hạ tầng Phase 3+4 được định nghĩa trong Terraform: VPC, subnets, IGW, NAT, SGs, ECR, ECS cluster + service + task definition, RDS, ALB, IAM roles/policies.
+- [ ] **TF-02**: Remote state: S3 bucket làm backend, DynamoDB table làm lock. State không lưu local.
+- [ ] **TF-03**: Modules tái sử dụng được: `modules/vpc`, `modules/ecr`, `modules/ecs`, `modules/rds`, `modules/alb`, `modules/iam`. Mỗi module có `variables.tf`, `outputs.tf`, `main.tf`.
+- [ ] **TF-04**: Ít nhất 2 environment: `envs/dev/` và `envs/prod/` với state file riêng. Dev dùng instance nhỏ hơn (RDS `db.t3.micro`, ECS 256/512).
+- [ ] **TF-05**: GitHub Actions workflow `terraform.yml`: PR → `terraform plan` (output comment vào PR), merge to main → `terraform apply` (với manual approval step qua GitHub Environments).
+
+---
+
+## v4.0 Requirements — Production Readiness (Phase 6)
+
+> **Mindset:** Không chỉ "deploy được" mà còn biết khi nào có vấn đề và xử lý được.
+
+### Observability + Security (Phase 6)
+
+- [ ] **OBS-01**: ECS task gửi logs lên CloudWatch Logs (`/ecs/claude-demo`). Log format JSON. Có thể query bằng CloudWatch Logs Insights.
+- [ ] **OBS-02**: CloudWatch alarms: (1) ECS CPU Utilization >80% trong 5 phút, (2) ECS Memory >80%, (3) ALB UnhealthyHostCount >0. Tất cả alarm → SNS topic.
+- [ ] **OBS-03**: SNS topic → email hoặc Slack webhook. Test: trigger alarm thủ công → nhận được notification trong <5 phút.
+- [ ] **OBS-04**: ECR image scanning kích hoạt khi push. GitHub Actions kiểm tra kết quả scan sau khi push — fail build nếu có CVE severity CRITICAL.
+- [ ] **OBS-05**: `docs/runbook.md` có hướng dẫn step-by-step cho ít nhất 3 sự cố: (1) Service down — ECS task không start, (2) DB connection fail, (3) High CPU — cách diagnose và fix.
+
+---
+
+## Deferred (không làm trong roadmap này)
+
+| Feature | Lý do defer | Khi nào làm |
+|---------|------------|-------------|
+| K8s local (minikube/kind) | ECS Fargate đủ để practice deploy pattern, K8s là bước sau | Sau v2.0 nếu cần |
+| EKS | Cần K8s fundamentals trước | Roadmap tiếp theo |
+| GitOps (ArgoCD/Flux) | Cần EKS trước | Sau EKS |
+| Multi-region | Quá phức tạp cho probation scope | Không ưu tiên |
+| GitLab CI | Repo trên GitHub, GitHub Actions đủ | Không ưu tiên |
+
+---
 
 ## Traceability
 
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| DOC-01, DOC-02, DOC-03 | Phase 1 | Complete |
-| CI-01, CI-02, CI-03, CI-04 | Phase 2 | Pending |
+| Requirement | Phase | Milestone | Status |
+|-------------|-------|-----------|--------|
+| DOC-01, DOC-02, DOC-03 | Phase 1 | v1.0 | ✓ Complete |
+| CI-01, CI-02, CI-03, CI-04 | Phase 2 | v1.0 | ✓ Complete |
+| AWS-01 → AWS-05 | Phase 3 | v2.0 | ○ Planned |
+| ECS-01 → ECS-05 | Phase 4 | v2.0 | ○ Planned |
+| TF-01 → TF-05 | Phase 5 | v3.0 | ○ Planned |
+| OBS-01 → OBS-05 | Phase 6 | v4.0 | ○ Planned |
