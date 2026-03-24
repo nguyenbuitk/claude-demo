@@ -36,7 +36,9 @@ Plans:
   3. Failed test on main blocks Docker build
   4. `ghcr.io/nguyenbuitk/claude-demo:latest` and `:sha-<commit>` in GHCR after merge
   5. No manually created secrets — `GITHUB_TOKEN` only
-**Plans:** TBD
+**Plans:** 1 plan
+Plans:
+- [x] 02-01-PLAN.md — CI/CD workflow with test and build-and-push jobs (CI-01, CI-02, CI-03, CI-04)
 **Files touched:** `.github/workflows/ci.yml`
 
 ---
