@@ -1,83 +1,52 @@
-# Claude Demo — CI/CD Pipeline + Feature Expansion
-
-## Current Milestone: v1.0 Full-Stack Feature Expansion
-
-**Goal:** Hoàn thiện CI/CD pipeline và thêm 2 tính năng UX mới cho task manager, chạy song song bởi 3 luồng độc lập.
-
-**Target features:**
-- [DevOps] Build và push Docker image lên `ghcr.io/nguyenbuitk/claude-demo` khi merge vào main
-- [Dev 1] Highlight đỏ task quá hạn, highlight vàng task sắp hết hạn (≤3 ngày)
-- [Dev 2] Lịch sử task hoàn thành — danh sách, ngày hoàn thành, tách biệt active tasks
+# DevOps Learning Roadmap
 
 ## What This Is
 
-A Flask-based task manager app (Python 3.12, Gunicorn, Docker) with automated CI/CD and enhanced task visibility. The project adds a full CI/CD pipeline (test + build/push Docker), deadline-based task highlighting, and a completion history view.
+Personal DevOps learning roadmap practiced on the `claude-demo` Flask app and applied to real work at VinMotion. Covers Docker → CI/CD → K8s → AWS → IaC/GitOps → Observability.
 
 ## Core Value
 
-Every PR shows test results so regressions are caught before they reach main.
+Every concept learned must be practiced hands-on and deployable to production-grade environments.
 
 ## Requirements
 
 ### Validated
 
-- ✓ Flask web app runs in Docker via docker-compose — existing
-- ✓ Tests exist (`tests/`) and can be run locally via `pytest` — existing
-- ✓ GitHub Actions workflows exist in `.github/workflows/` — existing
+- ✓ Flask app runs locally — existing
+- ✓ pytest suite (4 tests) — existing
+- ✓ GitHub Actions test workflow on PRs — Phase 1
 
 ### Active
 
-- [ ] A GitHub Actions workflow runs `pytest` on every pull request
-- [ ] Test results are visible in the PR checks UI (pass/fail/output)
-- [ ] Tests do NOT block merging — visibility only for now
-- [ ] Workflow installs dependencies from `requirements.txt` correctly
-- [ ] Workflow runs on Python 3.12 to match the production environment
+- [ ] Dockerize the Flask app (Dockerfile + health check)
+- [ ] CI/CD: build + push to GHCR on merge to main, gated on tests
+- [ ] Verify full CI pipeline works end-to-end on GitHub
 
-### Out of Scope
+### Out of Scope (v1.0)
 
-- Deployment automation (auto-deploy after push) — deferred; push to registry is sufficient for now
-- Blocking PR merges on failure — explicit choice; observability before enforcement
-- Test coverage reporting — nice-to-have, deferred to a future phase
-- Task reopen/undo completion — one-way completion is current design
-- Search/filter by title or description — separate future feature
+- K8s local cluster — Phase 3
+- AWS/EKS — Phase 4
+- Terraform + GitOps — Phase 5
+- Observability (Prometheus, Grafana) — Phase 6
 
 ## Context
 
-- **Existing CI:** Four GitHub Actions workflows exist but none execute `pytest`. The test suite is completely untested in CI.
-- **Known gap documented:** `.planning/codebase/CONCERNS.md` explicitly flags "No CI job runs pytest" as high severity.
-- **Test suite state:** `tests/` directory exists with at least `test_tasks.py`. No coverage for `storage.py` or Flask routes yet — but that's a separate concern.
-- **Deps:** `requirements.txt` pins 4 direct dependencies; `pytest` is not pinned there (invoked via `pytest` command).
-- **Concurrency concern:** Gunicorn runs 4 workers writing to `tasks.json` with no locking — known issue, out of scope here.
+- Repo: `claude-demo` (Python/Flask, JSON storage, no DB)
+- CI: GitHub Actions (not GitLab — easier for this repo)
+- GHCR registry: `ghcr.io/nguyenbuitk/claude-demo`
+- Real-world target: VinMotion (EKS, RDS Postgres, RabbitMQ, Redis, MongoDB)
 
 ## Constraints
 
-- **Tech stack**: GitHub Actions only — no external CI services; existing workflows use `ubuntu-latest`
-- **Python version**: Must use Python 3.12 to match the Dockerfile and production runtime
-- **Scope**: Test visibility only — do not add merge-blocking branch protection rules
+- **Stack**: Python 3.12, Flask, GitHub Actions only for v1.0
+- **Scope**: v1.0 = Phase 1-2 (Docker + CI/CD) only
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| Visibility-only (no PR gating) | New DevOps setup — observe baseline before enforcing | — Pending |
-| Separate workflow file for tests | Keep test CI distinct from Claude Code review workflows | — Pending |
-
-## Evolution
-
-This document evolves at phase transitions and milestone boundaries.
-
-**After each phase transition** (via `/gsd:transition`):
-1. Requirements invalidated? → Move to Out of Scope with reason
-2. Requirements validated? → Move to Validated with phase reference
-3. New requirements emerged? → Add to Active
-4. Decisions to log? → Add to Key Decisions
-5. "What This Is" still accurate? → Update if drifted
-
-**After each milestone** (via `/gsd:complete-milestone`):
-1. Full review of all sections
-2. Core Value check — still the right priority?
-3. Audit Out of Scope — reasons still valid?
-4. Update Context with current state
+| GitHub Actions over GitLab | Repo already on GitHub | — Pending |
+| claude-demo as practice app | Existing app, minimal setup | — Pending |
 
 ---
-*Last updated: 2026-03-23 after milestone v1.0 started*
+*Last updated: 2026-03-24 after initialization*
