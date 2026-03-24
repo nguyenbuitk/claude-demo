@@ -16,8 +16,11 @@
   2. `docker run -p 5000:5000 claude-demo` serves the app
   3. `GET /health` returns `{"status": "ok"}` with HTTP 200
   4. `HEALTHCHECK` present in Dockerfile
-**Plans:** TBD
-**Files touched:** `Dockerfile`, `web.py`, `.dockerignore`
+**Plans:** 2 plans
+Plans:
+- [ ] 01-01-PLAN.md — Add /health endpoint to Flask app with tests (DOC-02)
+- [ ] 01-02-PLAN.md — Multi-stage Dockerfile with HEALTHCHECK, .dockerignore and docker-compose cleanup (DOC-01, DOC-03)
+**Files touched:** `Dockerfile`, `web.py`, `.dockerignore`, `docker-compose.yml`, `tests/test_web.py`
 
 ---
 

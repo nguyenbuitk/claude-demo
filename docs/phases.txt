@@ -30,7 +30,7 @@ Target: không chỉ "deploy được", mà deploy theo đúng chuẩn
 Steps:
 Tách pipeline thành các stage rõ ràng:
 Validate, test, build, security scan, deploy
-Dùng:
+Dùng:               
 Gitlab runner
 Gitlab container registry hoặc ECR
 Thêm các kiểm tra:
