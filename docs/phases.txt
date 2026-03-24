@@ -1,0 +1,155 @@
+Phase 1 - Setup local end-to-end flow.
+Target: hiểu trọn luồn deploy, không bị phụ thuộc quá sớm vào cloud
+Steps
+Tạo 1 app mẫu:
+Backend đơn giản (python flask/ node.js)
+Có frontend đơn giản
+Có API health check
+https
+Dockerize app
+Viết CI pipeline lên gitlab
+Lint
+Test
+Build image
+Push image
+Dựng K8s local:
+Minikube/ kind
+ 
+Deploy app lên k8s:
+Deployment, service, configmap, secret, ingress cơ bản
+ 
+Output của phase này:
+Có repo chạy được full flow:
+Code push
+Gitlab pipeline chạy
+Image được build
+App deploy lên k8s local
+ 
+Phase 2 - Chuẩn hóa CI/CD theo kiểu production
+Target: không chỉ "deploy được", mà deploy theo đúng chuẩn
+Steps:
+Tách pipeline thành các stage rõ ràng:
+Validate, test, build, security scan, deploy
+Dùng:
+Gitlab runner
+Gitlab container registry hoặc ECR
+Thêm các kiểm tra:
+Unit test, image scan
+Yaml, k8s manifest validation
+Tách môi trường:
+Dev, staging, prod
+Dùng branch/tag strategy:
+Brand develop -> deploy dev
+Tag/release -> deploy staging/prod
+Output:
+1 Pipeline nhìn enterprise hơn
+Có rule deploy theo branch/tag
+Có rollback tư duy cơ bản
+ 
+Phase 3 - K8s thực chiến
+Target:
+Cần practice các k8s core objects:
+Namespace, deployment, statefulset, daemonset, service, ingress, HPA, PVC/PV
+Config & secrets management
+Resource requests/limits
+Liveness / readiness probe
+Rolling update/ rollback
+Log và debug
+Package app bằng helm
+Output của phase này:
+Không chỉ deploy app, mà còn: scale được, rollback được, quản lý config bài bản
+ 
+Phase 4 - Setup cluster và hạ tầng AWS từ đầu:
+Practice trên AWS:
+Networking: VPC, public/private subnets, route tables, internet gateway, NAT gateway, security group
+IAM
+User/ role/ policy
+Lease privilege
+Compute:
+EC2 cơ bản
+container platform: EKS
+Image registry: ECR
+Storage: S3, EBS
+DNS/ TLS: Route 53, ACM
+Load balancing: ALB / NLB
+Cách học:
+Tất nhiên đầu tiên cần setup tay trên console để hiểu service
+Sau đó chuyển sang IaC, có thể dùng terraform là hợp lý nhất
+Output của phase này:
+Tự dựng được 1 môi trường AWS có:
+VPC, EKS cluster, worker nodes, ALB ingress, app chạy public
+
+Phase 5 - Infrastructure as Code + GitOps
+Target: Làm để có thể scale được cho team
+Practice:
+Terraform module
+VPC module
+EKS module
+ECR module
+IAM module
+Tách state: backend S3, lock bằng DynamoDB
+Environment structure:
+Dev / staging / prod
+GitOps:
+ArgoCD hoặc Flux
+Tách app repo, infra repo, manifest/helm repo
+Output của phase này:
+Infra không còn setup thủ công
+Deploy có trace qua git
+Dễ review, dễ audit
+ 
+Phase 6 - Production rediness
+Target: Gần với mindset senior devops
+Practice:
+Observability: Prometheus, grafana, loki, ELK, EKF (?)
+Alerting:
+CPU, memory, pod restart, service down
+Security: secrets handling, image scanning, RBAC, network policies
+Reliability:
+Backup/restore
+Rollout strategy, rollback strategy
+Cost awareness: node sizing, autoscaling, log retention
+Documentation: runbook, deployment guide, incident handling guide
+Output:
+có một miniplatform gần giống production
+Không chỉ "dựng được", mà còn "vận hành được"
+ 
+Roadmap ưu tiên:
+Vì chủ yếu làm CI/CD cho dự án, nên thứ tự là:
+Ưu tiên 1: Gitlab CI/CD, docker, k8s deploy, helm, debug rollout
+Ưu tiên 2: EKS, ECR, ALB ingress, IAM role basics, Terraform
+Ưu tiên 3: observability, security scan, gitops, autoscaling
+ 
+Summarize:
+Components:
+backend API, frontend api
+1 worker/backgroup job
+Redis or postgreSQL
+Gitlab repo, docker image, helm chart
+K8s deploy
+AWS EKS
+Monitoring cơ bản
+Flow hoàn chỉnh:
+Dev push code
+Gitlab chạy test/build
+Push image lên registry
+Update manifest/chart
+Deploy lên K8s
+Verify health
+Monitor/log
+Output cần hoàn thành
+Phase 1: repo app + dockerfile
+Phase 2: .gitlab-ci.yml chuẩn
+Phase 3: Helm chart + probes + HPA
+Phase 4: AWS environment chạy thật
+Phase 5: Terraform code + Gitops
+Phase 6: dashboard + alert + runbook
+ 
+Kết luận:
+Phase 1: Local app + Docker + Gitlab
+Phase 2: CI/CD chuẩn hóa theo env
+Phase 3: K8s thực chiến
+Phase 4: AWS foundation + EKS
+Phase 5: Terraform + GitOps
+Phase 6: Monitoring, security, operations
+ 
