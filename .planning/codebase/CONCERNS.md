@@ -1,49 +1,71 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-03-23
+**Analysis Date:** 2026-03-24
 
-## Architecture / Tech Debt
+## Tech Debt
 
-- **No service layer** — All business logic lives directly in Flask route handlers. Routes call `load_tasks()`/`save_tasks()` directly with no intermediate abstraction. Adding complex business rules will require touching routes.
-- **Flat JSON file as database** — `tasks.json` is the only persistence mechanism. Full read/write on every request; no indexing, no querying, no transactions.
-- **No input validation on `priority`** — Any string is accepted as a priority value. Invalid values silently persist without error.
-- **Task completion is one-way** — `complete()` sets `done = True` with no undo/reopen path. The UI has no way to reopen a completed task.
-- **No pagination** — All tasks are loaded and rendered on every request. Performance degrades with large task lists.
+**No service layer:**
+- `web.py` calls `load_tasks()` / `save_tasks()` directly in every route
+- Files: `web.py` (lines 62–74, 80–85, 92–95, 101–114, 139–146)
+- Impact: business logic is coupled to HTTP layer; hard to reuse or test routes in isolation
 
-## Security
+**Full file read/write on every operation:**
+- Files: `storage.py` (lines 10–40)
+- Impact: performance degrades linearly with task count; risk of data loss on concurrent writes (no locking)
 
-- **No authentication or authorization** — Any user with network access can view, add, edit, complete, and delete all tasks. No login, sessions, or access control.
-- **No CSRF protection** — All mutating forms (`/add`, `/done`, `/delete`, `/edit`, `/reorder`) are vulnerable to cross-site request forgery. Flask-WTF or manual CSRF tokens are absent.
-- **Client IP/hostname exposed in UI** — `web.py` passes `client_ip` and `client_host` to the template. If rendered, this leaks server-side network information to the browser.
-- **`debug=True` in direct-run entry point** — `if __name__ == "__main__": app.run(debug=True, ...)`. If accidentally used in production, the Werkzeug debugger exposes an interactive Python shell.
-- **No input length limits** — `title`, `description`, `tags` have no maximum length. Large inputs are stored and rendered without truncation.
+**Priority field is unvalidated string:**
+- Files: `tasks.py` (line 13), `web.py` (lines 69, 111)
+- Impact: any string accepted from form input; invalid values silently persist to JSON
 
-## Concurrency / Race Conditions
+**No input validation on `due_date`:**
+- Files: `web.py` (lines 63, 112)
+- Impact: malformed date strings accepted and stored; no format enforcement
 
-- **No file locking on `tasks.json`** — `docker-compose.yml` runs Gunicorn with 4 workers. Concurrent requests can read stale data and overwrite each other's writes (last-write-wins with no conflict detection).
-- **`/reorder` silently swallows fetch errors** — The browser-side drag-and-drop handler does not surface network or server errors to the user.
+## Security Considerations
 
-## Docker / Deployment
+**Debug mode enabled in production entrypoint:**
+- Files: `web.py` (line 151): `app.run(debug=True, ...)`
+- Risk: Werkzeug debugger PIN exposed if served directly; must be disabled behind gunicorn/uwsgi
+- Current mitigation: Dockerfile likely uses a proper server, but the `if __name__ == "__main__"` path is dangerous
 
-- **`tasks.json` volume mount requires pre-existing file** — `docker-compose.yml` mounts `./tasks.json:/app/tasks.json`. If the file does not exist on the host, Docker creates a directory at that path instead, causing a startup crash.
-- **Pinned direct dependencies only** — `requirements.txt` pins 4 direct dependencies but transitive dependencies are unpinned. Builds are not fully reproducible.
+**`client_ip` / `client_host` passed to template but ProxyFix trust is broad:**
+- Files: `web.py` (lines 13, 42–43)
+- Risk: `x_for=1` trusts one proxy hop; spoofable if not behind a controlled proxy
 
-## Test Coverage
+**No CSRF protection on state-mutating POST routes:**
+- Files: `web.py` (routes `/add`, `/done/<id>`, `/delete/<id>`, `/edit/<id>`, `/reorder`)
+- Risk: cross-site requests can mutate or delete tasks without user intent
 
-- **Zero tests for `storage.py`** — No coverage of the persistence layer including file I/O, deserialization, and error handling.
-- **Zero tests for Flask routes** — No HTTP-level tests for any route, filter, redirect, or JSON endpoint.
-- **No CI job runs pytest** — The GitHub Actions workflows exist but none execute the test suite. Test failures would not block merges.
+## Fragile Areas
 
-## Missing Features
+**`tasks.json` committed to repo:**
+- Files: `tasks.json`
+- Why fragile: production data mixed with source code; conflicts on git pull
 
-- No way to reopen/un-complete a task
-- No search by title or description
-- No input validation feedback (silent ignores on empty title)
-- No error pages (404/500)
-- No pagination or virtual scrolling for large lists
+**`reorder` endpoint trusts client-supplied ID list without authentication:**
+- Files: `web.py` (lines 133–147)
+- Risk: any client can arbitrarily reorder (or effectively drop) tasks by sending a crafted JSON payload
 
-## Scalability Limits
+**`get_next_id` is not atomic:**
+- Files: `web.py` (lines 21–26)
+- Risk: concurrent requests can assign duplicate IDs (no DB sequence or lock)
 
-- Single-file JSON store degrades noticeably beyond a few hundred tasks
-- Full file rewrite on every mutation — no partial updates
-- Cannot support horizontal scaling without shared storage or a real database
+## Test Coverage Gaps
+
+**No tests for `storage.py`:**
+- What's not tested: `load_tasks`, `save_tasks`, file-not-found path, corrupt JSON
+- Files: `tests/test_tasks.py` — only covers `Task` dataclass
+- Priority: High
+
+**No tests for any Flask routes:**
+- What's not tested: `add`, `done`, `delete`, `edit`, `reorder`, filtering logic
+- Files: `web.py` — zero route coverage
+- Priority: High
+
+**No tests for `parse_tags` or `get_next_id`:**
+- Files: `web.py` (lines 16–26)
+- Priority: Medium
+
+---
+
+*Concerns audit: 2026-03-24*

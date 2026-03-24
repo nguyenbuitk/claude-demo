@@ -1,80 +1,66 @@
 # Codebase Structure
 
+**Analysis Date:** 2026-03-24
+
 ## Directory Layout
 
 ```
 claude-demo/
-├── tasks.py              # Core data model (Task dataclass)
-├── storage.py            # Persistence layer (JSON read/write)
-├── web.py                # Flask application — routes and request handling
-├── tasks.json            # Runtime data file (git-ignored)
-├── requirements.txt      # Python dependencies
-├── Dockerfile            # Container image definition
-├── docker-compose.yml    # Local multi-container orchestration
-├── CLAUDE.md             # AI assistant instructions for this repo
-├── README.md             # Project documentation
+├── tasks.py             # Task dataclass (model)
+├── storage.py           # JSON load/save helpers
+├── web.py               # Flask app + all routes
+├── tasks.json           # Runtime data file (committed, auto-overwritten)
+├── conftest.py          # Pytest root config
+├── requirements.txt     # Python dependencies
+├── Dockerfile           # Container build
+├── docker-compose.yml   # Local container orchestration
 ├── templates/
-│   └── index.html        # Single shared Jinja2 template (list + edit views)
+│   └── index.html       # Single Jinja2 template (list + edit)
 ├── tests/
-│   └── test_tasks.py     # Pytest unit tests
+│   └── test_tasks.py    # Unit tests
 ├── .github/
-│   └── workflows/
-│       ├── main.yml              # Main CI pipeline
-│       ├── hello.yml             # Hello World workflow
-│       ├── claude.yml            # Claude AI integration workflow
-│       └── claude-code-review.yml # Automated code review workflow
-└── .planning/            # GSD planning artifacts (git-ignored)
+│   └── workflows/       # CI workflow YAMLs
+└── .planning/           # GSD planning docs (not app code)
+    └── codebase/
 ```
 
-## File Responsibilities
+## Key File Locations
 
-### `tasks.py`
-- Defines the `Task` dataclass: `id`, `title`, `description`, `done`, `priority`, `created_at`, `due_date`, `tags`
-- `priority` is a string: `"low"`, `"medium"`, or `"high"`
-- `id` is `None` until persisted; assigned by `web.py` via `get_next_id()`
-- `complete()` method sets `done = True` (one-way, no undo)
-- `__str__` produces CLI-friendly output: `[x] (high) Buy milk`
+| Purpose | Path |
+|---------|------|
+| Data model | `tasks.py` |
+| Persistence | `storage.py` |
+| Web app / routes | `web.py` |
+| HTML template | `templates/index.html` |
+| Unit tests | `tests/test_tasks.py` |
+| Test config | `conftest.py` |
+| Runtime data | `tasks.json` |
+| Dependencies | `requirements.txt` |
 
-### `storage.py`
-- `DATA_FILE` resolves to `tasks.json` relative to the module file (not cwd)
-- `load_tasks()` — reads `tasks.json`, deserializes each dict into a `Task(**item)`; returns `[]` on first run
-- `save_tasks(tasks)` — serializes task list to JSON with explicit field mapping (future-proof against dataclass changes)
-- No caching; every operation reads/writes the full file
+## Naming Conventions
 
-### `web.py`
-- Flask app entry point; uses `ProxyFix` middleware for reverse proxy support
-- **Routes:**
-  - `GET /` — list tasks; accepts `?show_done=0` and `?tag=<name>` query params; passes `draggable_enabled` flag when no filters active
-  - `POST /add` — create task; ignores empty titles; calls `get_next_id()`
-  - `POST /done/<id>` — mark task complete; redirects to referrer
-  - `POST /delete/<id>` — remove task; redirects to referrer
-  - `GET|POST /edit/<id>` — GET renders edit form via shared template with `editing=task`; POST saves changes
-  - `POST /reorder` — accepts JSON `{"order": [id, ...]}` for drag-and-drop reordering
-- No service layer — routes call `load_tasks()`/`save_tasks()` directly
-- Helper `parse_tags(raw)` splits comma-separated tag strings into sorted, deduplicated lowercase lists
+- **Python files:** `snake_case.py`
+- **Functions:** `snake_case` (e.g. `load_tasks`, `save_tasks`, `get_next_id`, `parse_tags`)
+- **Classes:** `PascalCase` (e.g. `Task`)
+- **Templates:** `snake_case.html` under `templates/`
+- **Tests:** `test_<module>.py` in `tests/`
 
-### `templates/index.html`
-- Single template shared for both list view and edit view
-- `editing` context variable: `None` for list view, a `Task` object for edit view
-- Renders task list, add form, filter controls (show_done toggle, tag chips), and inline edit form
+## Where to Add New Code
 
-### `tests/test_tasks.py`
-- Pytest unit tests focused on the `Task` model
+| What | Where |
+|------|-------|
+| New Task fields | `tasks.py` (dataclass) + `storage.py` (serialize dict) |
+| New route | `web.py` (new `@app.route`) |
+| New template | `templates/` |
+| New tests | `tests/test_<module>.py` |
+| New helper module | Project root (flat layout) |
 
-## Entry Points
+## Special Files
 
-- **Web server:** `python web.py` (debug mode, port 5000) or via Dockerfile/docker-compose
-- **Tests:** `pytest` from project root
+- `tasks.json` — generated at runtime; committed to repo as seed data; overwritten on every mutation
+- `conftest.py` — root-level pytest config; adds project root to `sys.path`
+- `.planning/` — GSD planning docs; not application code
 
-## How Components Interact
+---
 
-```
-HTTP Request
-    └─> web.py (Flask route)
-            ├─> storage.load_tasks()  ──> tasks.json
-            ├─> Task() / task.complete()  ──> tasks.py
-            └─> storage.save_tasks()  ──> tasks.json
-                      └─> render_template("index.html", ...)
-```
-
-No service layer exists between routes and storage — all business logic lives directly in route handlers.
+*Structure analysis: 2026-03-24*

@@ -1,76 +1,50 @@
 # Technology Stack
 
-**Analysis Date:** 2026-03-23
+**Analysis Date:** 2026-03-24
 
 ## Languages
 
-**Primary:**
-- Python 3.12 - All application code (web app, data model, storage, tests)
-
-**Secondary:**
-- HTML/Jinja2 - Server-side templating at `templates/index.html`
+- Python 3.12 — all application code (`tasks.py`, `storage.py`, `web.py`)
+- HTML/Jinja2 — templates (`templates/index.html`)
 
 ## Runtime
 
-**Environment:**
-- Python 3.12 (confirmed via system `python3 --version`)
-
-**Package Manager:**
-- pip - dependencies declared in `requirements.txt`
-- Lockfile: Not present (no `requirements.lock` or `pip.lock`)
+- **Environment:** CPython 3.12 (pinned in `Dockerfile`)
+- **Package Manager:** pip
+- **Lockfile:** None — `requirements.txt` pins exact versions
 
 ## Frameworks
 
-**Core:**
-- Flask 3.1.3 - Web framework; handles routing, request/response, templating
-- Werkzeug 3.1.6 - WSGI utilities; `ProxyFix` middleware used in `web.py`
-- Jinja2 3.1.2 - Templating engine (bundled with Flask, pinned explicitly)
+| Framework | Version | Purpose |
+|-----------|---------|---------|
+| Flask | 3.1.3 | Web framework, routing, templates |
+| Werkzeug | 3.1.6 | WSGI utilities, `ProxyFix` middleware |
+| Jinja2 | 3.1.2 | HTML templating (bundled with Flask) |
+| gunicorn | 23.0.0 | Production WSGI server (4 workers) |
 
 **Testing:**
-- pytest - Test runner (not pinned in `requirements.txt`; invoked via `pytest` command)
-
-**Production Server:**
-- Gunicorn 23.0.0 - WSGI server; runs 4 workers bound to `0.0.0.0:5000`
-
-**Build/Dev:**
-- No build tools (pure Python, no transpilation or asset pipeline)
+- pytest — test runner (installed separately, not in `requirements.txt`)
 
 ## Key Dependencies
 
-**Critical:**
-- `Flask==3.1.3` (`requirements.txt`) - Core web framework; all routes defined in `web.py`
-- `Werkzeug==3.1.6` (`requirements.txt`) - WSGI layer; `ProxyFix` used to handle reverse proxy headers
-- `Jinja2==3.1.2` (`requirements.txt`) - Template rendering; single shared template `templates/index.html`
-- `gunicorn==23.0.0` (`requirements.txt`) - Production WSGI server; referenced in `Dockerfile` CMD
-
-**Infrastructure:**
-- Docker - Container image defined in `Dockerfile`; compose config in `docker-compose.yml`
+- `werkzeug.middleware.proxy_fix.ProxyFix` — used in `web.py` for reverse-proxy header forwarding
+- Python stdlib only: `dataclasses`, `datetime`, `json`, `os`, `typing`
 
 ## Configuration
 
-**Environment:**
-- `PYTHONUNBUFFERED=1` set in `docker-compose.yml` for real-time log output
-- No application secrets or API keys required
-- `.env` and `.env.*` files are gitignored (none currently present)
+- No environment variable configuration for app behaviour
+- `PYTHONUNBUFFERED=1` set in `docker-compose.yml`
+- Data file path resolved at module load in `storage.py` via `os.path.abspath(__file__)`
 
-**Build:**
-- `Dockerfile` - Multi-stage Python 3.12-slim image; non-root `appuser`; runs Gunicorn
-- `docker-compose.yml` - Single `app` service; port `127.0.0.1:5000:5000`; bind-mounts `tasks.json` for data persistence
+## Build / Deployment
 
-## Platform Requirements
-
-**Development:**
-- Python 3.12+
-- pip
-- Run: `python web.py` (Flask dev server, port 5000, debug mode)
-- Tests: `pytest`
-
-**Production:**
-- Docker (compose v2 compatible)
-- Image based on `python:3.12-slim`
-- Gunicorn serves on port 5000 with 4 workers
-- `tasks.json` must be writable and bind-mounted for data persistence
+| Artifact | Detail |
+|----------|--------|
+| `Dockerfile` | `python:3.12-slim`, non-root `appuser`, exposes port 5000 |
+| `docker-compose.yml` | Single `app` service, binds `127.0.0.1:5000`, mounts `tasks.json` volume |
+| Dev server | `python web.py` (Flask debug mode, port 5000) |
+| Prod server | `gunicorn --workers 4 --bind 0.0.0.0:5000 web:app` |
 
 ---
 
-*Stack analysis: 2026-03-23*
+*Stack analysis: 2026-03-24*

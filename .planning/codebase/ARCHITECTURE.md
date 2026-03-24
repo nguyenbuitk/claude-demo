@@ -1,145 +1,67 @@
 # Architecture
 
-**Analysis Date:** 2026-03-23
+**Analysis Date:** 2026-03-24
 
 ## Pattern Overview
 
-**Overall:** Flat, two-layer Flask web application with no service layer.
+**Overall:** Flat 3-file MVC (no service layer)
 
 **Key Characteristics:**
-- No service or business-logic layer — `web.py` route handlers call `storage.py` functions directly
-- All state is persisted to a single JSON file (`tasks.json`); no database
-- Every route performs a full read-then-write cycle; no in-memory state between requests
-- A single Jinja2 template (`templates/index.html`) serves both the list view and the edit view, distinguished by an `editing` context variable
+- No service layer — `web.py` calls storage directly
+- No database — plain JSON file (`tasks.json`) read/written on every request
+- Single template (`templates/index.html`) handles both list and edit views via `editing` context var
 
 ## Layers
 
-**Data Model:**
-- Purpose: Define the structure of a task and provide one behavior method
-- Location: `tasks.py`
-- Contains: `Task` dataclass with fields: `id`, `title`, `description`, `done`, `priority`, `created_at`, `due_date`, `tags`; one method: `complete()`
-- Depends on: Python standard library only (`dataclasses`, `datetime`, `typing`)
-- Used by: `storage.py` (reconstruction), `web.py` (instantiation), `tests/test_tasks.py`
-
-**Persistence Layer:**
-- Purpose: Read/write tasks from/to disk
-- Location: `storage.py`
-- Contains: `load_tasks()` and `save_tasks(tasks)` functions
-- Depends on: `tasks.py` (Task class), `json`, `os`
-- Used by: `web.py` (every route invokes both functions)
-
-**Web Layer:**
-- Purpose: HTTP routing, request parsing, response rendering
-- Location: `web.py`
-- Contains: Flask app, six route handlers, two helper functions (`parse_tags`, `get_next_id`)
-- Depends on: `tasks.py`, `storage.py`, Flask, Werkzeug
-
-**Template Layer:**
-- Purpose: HTML rendering for both list and edit views
-- Location: `templates/index.html`
-- Contains: Jinja2 template with embedded CSS and conditional JavaScript (drag-and-drop)
-- Depends on: context variables passed by `web.py` route handlers
+| Layer | File | Responsibility |
+|-------|------|----------------|
+| Model | `tasks.py` | `Task` dataclass; field definitions; `complete()` method |
+| Storage | `storage.py` | `load_tasks()` / `save_tasks()` — JSON serialization only |
+| Web | `web.py` | Flask routes; business logic; calls storage directly |
+| Template | `templates/index.html` | Renders list + inline edit form |
 
 ## Data Flow
 
-**Add Task:**
+**Read (GET /):**
+1. `web.py` calls `load_tasks()` → reads `tasks.json` → returns `list[Task]`
+2. Route filters by `show_done` and `tag` query params
+3. `render_template("index.html", tasks=...)` returns HTML
 
-1. Browser submits `POST /add` with form fields: `title`, `description`, `priority`, `due_date`, `tags`
-2. `add()` in `web.py` calls `load_tasks()` to fetch current task list from `tasks.json`
-3. `get_next_id(tasks)` computes `max(existing ids) + 1`
-4. A new `Task` object is instantiated and appended to the list
-5. `save_tasks(tasks)` serializes the full list back to `tasks.json`
-6. Handler redirects to `GET /`
-
-**Complete Task:**
-
-1. Browser submits `POST /done/<id>`
-2. `done()` calls `load_tasks()`, finds the task by id, calls `task.complete()` (sets `done=True`)
-3. `save_tasks(tasks)` rewrites the file
-4. Handler redirects back to referrer (or `/`)
-
-**Edit Task (GET):**
-
-1. Browser navigates to `GET /edit/<id>`
-2. `edit()` calls `load_tasks()`, finds the task, renders `index.html` with `editing=task`
-3. Template detects `editing` is truthy and renders the form pre-filled with current task fields
-
-**Edit Task (POST):**
-
-1. Browser submits `POST /edit/<id>` with updated form fields
-2. `edit()` mutates the found `Task` object in-place, calls `save_tasks(tasks)`
-3. Redirects to `GET /`
-
-**Reorder Tasks:**
-
-1. Browser drag-and-drop triggers `fetch POST /reorder` with JSON body `{"order": [id, ...]}`
-2. `reorder()` rebuilds the task list in the supplied order; tasks not in the payload are appended
-3. `save_tasks(reordered)` persists new order; responds `204 No Content`
-
-**Delete Task:**
-
-1. Browser submits `POST /delete/<id>`
-2. `delete()` calls `load_tasks()`, filters out the matching id, calls `save_tasks()`
-3. Redirects back to referrer (or `/`)
-
-**State Management:**
-- No server-side session or in-memory state; the `tasks.json` file is the sole source of truth
-- View state (show_done, active_tag) is carried entirely via query parameters (`?show_done=1&tag=foo`)
+**Write (POST /add, /done, /delete, /edit, /reorder):**
+1. Route receives form data / JSON body
+2. Calls `load_tasks()` to get current state
+3. Mutates the list in memory
+4. Calls `save_tasks(tasks)` → overwrites `tasks.json`
+5. Redirects to index (or referrer)
 
 ## Key Abstractions
 
-**Task:**
-- Purpose: Represents a single to-do item
-- Examples: `tasks.py` (lines 8-26)
-- Pattern: Python `@dataclass`; `id` is `None` until persisted; `priority` is a plain string constrained to `"low"`, `"medium"`, `"high"` by convention only (no enum)
-
-**load_tasks / save_tasks:**
-- Purpose: Full-file read and full-file overwrite on every operation
-- Examples: `storage.py` (lines 10-40)
-- Pattern: Stateless functions; no connection pooling or caching; JSON deserialization reconstructs `Task` objects via `Task(**item)` (requires JSON fields to match dataclass field names exactly)
-
-**get_next_id:**
-- Purpose: Monotonically increasing ID assignment
-- Examples: `web.py` (lines 21-26)
-- Pattern: Scans all existing ids and increments the max; deleted IDs are never reused (gaps are intentional)
-
-**parse_tags:**
-- Purpose: Normalize comma-separated tag input
-- Examples: `web.py` (lines 16-18)
-- Pattern: Lowercases, strips whitespace, deduplicates, sorts — returns a list of strings
+**Task (`tasks.py`):**
+- Dataclass with fields: `id`, `title`, `description`, `priority`, `done`, `created_at`, `due_date`, `tags`
+- `priority` values: `"low"`, `"medium"`, `"high"`
+- `id` is `None` until persisted; assigned via `get_next_id()` in `web.py`
+- `tags`: sorted list of lowercase strings
 
 ## Entry Points
 
-**Web Server:**
-- Location: `web.py` (line 150: `if __name__ == "__main__":`)
-- Triggers: `python web.py` (development) or gunicorn (production via Dockerfile)
-- Responsibilities: Starts Flask dev server on `0.0.0.0:5000` with debug mode enabled
+**Web server:** `web.py` — `python web.py` or `flask run`; binds `0.0.0.0:5000`
 
-**`GET /`:**
-- Location: `web.py` lines 29-54
-- Query params: `show_done` (default `"1"`), `tag` (default `""`)
-- Responsibilities: Loads all tasks, collects tag list before filtering, applies done/tag filters, sets `draggable_enabled` only when no filters are active, renders `index.html`
+**Routes:**
+| Method | Path | Action |
+|--------|------|--------|
+| GET | `/` | List tasks; `?show_done=0`, `?tag=<tag>` filters |
+| POST | `/add` | Create task |
+| POST | `/done/<id>` | Mark complete |
+| POST | `/delete/<id>` | Remove task |
+| GET/POST | `/edit/<id>` | Show/submit edit form |
+| POST | `/reorder` | Drag-drop reorder (JSON body `{"order": [...ids]}`) |
 
 ## Error Handling
 
-**Strategy:** Minimal; most failures are silent redirects.
-
-**Patterns:**
-- Missing task on `GET /edit/<id>`: redirect to `/` (line 104-105)
-- Empty title on `POST /add` or `POST /edit/<id>`: silently ignored, redirect to `/`
-- Malformed JSON body on `POST /reorder`: returns `400 Bad request` (line 138)
-- No HTTP error pages or user-facing error messages for most edge cases
-
-## Cross-Cutting Concerns
-
-**Logging:** None — no logging framework; no `print` statements for request tracing.
-
-**Validation:** Only `title` emptiness is checked; priority values, date formats, and tag contents are not validated server-side.
-
-**Authentication:** None — the application has no auth layer; all routes are publicly accessible.
-
-**Proxy Awareness:** `ProxyFix` middleware applied (`web.py` line 13) to correctly resolve `X-Forwarded-For`, `X-Forwarded-Host`, and `X-Forwarded-Proto` headers when running behind a reverse proxy.
+- Missing task on edit/done/delete: silently skips or redirects to index
+- Empty title on add/edit: silently ignored, no save performed
+- Missing `tasks.json`: `load_tasks()` returns `[]` (first-run safe)
 
 ---
 
-*Architecture analysis: 2026-03-23*
+*Architecture analysis: 2026-03-24*

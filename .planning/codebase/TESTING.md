@@ -1,78 +1,80 @@
-# Testing
+# Testing Patterns
 
-**Analysis Date:** 2026-03-23
+**Analysis Date:** 2026-03-24
 
-## Framework
+## Test Framework
 
-- **pytest** (via `requirements.txt`)
-- No test configuration file (`pytest.ini`, `pyproject.toml [tool.pytest]`, or `setup.cfg` not present)
-- Tests run from project root: `pytest` or `pytest tests/test_tasks.py::test_name`
+- **Runner:** pytest (installed via CI: `pip install pytest`, no version pin)
+- **Assertion:** plain `assert` statements (no assertion library)
+- **Config:** no `pytest.ini` or `pyproject.toml` — defaults only
+- `conftest.py` at repo root adds root to `sys.path` for imports
 
-## Test Location
-
+**Run Commands:**
+```bash
+pytest                          # all tests
+pytest tests/test_tasks.py::test_task_creation  # single test
+pytest tests/ -v --tb=short     # CI mode (verbose, short tracebacks)
 ```
-tests/
-└── test_tasks.py   # 4 unit tests for the Task dataclass
+
+## Test File Organization
+
+- Location: `tests/` directory, separate from source
+- Naming: `test_<module>.py` (e.g., `tests/test_tasks.py`)
+- No subdirectories yet
+
+## Test Structure
+
+```python
+from tasks import Task
+
+def test_task_creation():
+    task = Task(title="Buy groceries", priority="high")
+    assert task.title == "Buy groceries"
+    assert task.done == False
+    assert task.priority == "high"
 ```
 
-No `__init__.py` in `tests/`. The test file manually inserts the project root into `sys.path` to import `tasks.py`.
+- No classes/suites — flat `def test_*()` functions only
+- No `setUp`/`tearDown` — each test constructs its own objects
+- One logical assertion group per test function
+
+## Mocking
+
+- **None used** — no `unittest.mock`, `pytest-mock`, or monkeypatching
+- `storage.py` and `web.py` routes are not tested (untested I/O)
+
+## Fixtures
+
+- **None defined** — no `@pytest.fixture` in `conftest.py` or test files
+- Test data is constructed inline in each test
+
+## Coverage
+
+- **No coverage tooling** configured or enforced
+- No `pytest-cov` in `requirements.txt`
+
+## Test Types
+
+| Type | Status |
+|------|--------|
+| Unit (dataclass logic) | Present — `tests/test_tasks.py` |
+| Integration (storage I/O) | Absent |
+| Route/HTTP | Absent |
+| E2E | Absent |
 
 ## What Is Tested
 
-### `tests/test_tasks.py` — Task model only
+- `Task` dataclass field defaults: `tests/test_tasks.py::test_task_creation`
+- `Task.complete()` method: `tests/test_tasks.py::test_task_complete`
+- `Task.__str__()` incomplete: `tests/test_tasks.py::test_task_str_incomplete`
+- `Task.__str__()` complete: `tests/test_tasks.py::test_task_str_complete`
 
-| Test | What it checks |
-|------|---------------|
-| `test_task_creation` | Field defaults: `title`, `done=False`, `priority` |
-| `test_task_complete` | `task.complete()` sets `done = True` |
-| `test_task_str_incomplete` | `__str__` format for incomplete task: `[ ] (low) Fix bug` |
-| `test_task_str_complete` | `__str__` format for complete task: `[x] (low) Fix bug` |
+## CI Integration
 
-## What Is NOT Tested
+- Runs on PRs via `.github/workflows/test.yml`
+- Python 3.12, pip cache enabled
+- Command: `pytest tests/ -v --tb=short`
 
-### `storage.py` — No tests
-- `load_tasks()` — file read, JSON deserialization, empty list on missing file
-- `save_tasks()` — JSON serialization, field mapping, file write
-- Round-trip: save then load produces equivalent tasks
-- Edge cases: malformed JSON, missing fields, unknown fields
+---
 
-### `web.py` — No tests
-- No route tests (no Flask test client usage)
-- `GET /` — list rendering, `show_done` filter, `tag` filter
-- `POST /add` — task creation, empty title ignore, tag parsing
-- `POST /done/<id>` — completion, referrer redirect
-- `POST /delete/<id>` — deletion, missing ID handling
-- `GET|POST /edit/<id>` — edit form rendering, save, missing task redirect
-- `POST /reorder` — JSON order persistence, bad request handling
-- `parse_tags()` helper — deduplication, lowercasing, sorting
-- `get_next_id()` helper — empty list, ID gap handling
-
-### Integration — No tests
-- End-to-end: HTTP request → storage → response
-- No fixture for temporary `tasks.json`
-
-## Coverage Gaps Summary
-
-| Layer | Coverage |
-|-------|----------|
-| `tasks.py` (model) | ~80% — missing: `due_date`/`tags` field tests, `id=None` default |
-| `storage.py` | 0% |
-| `web.py` (routes) | 0% |
-| `web.py` (helpers) | 0% |
-
-## CI Status
-
-No CI job currently runs `pytest`. The `.github/workflows/main.yml` workflow exists but does not execute the test suite. Test runs are manual only.
-
-## How to Run Tests
-
-```bash
-# All tests
-pytest
-
-# Single test
-pytest tests/test_tasks.py::test_task_creation
-
-# With output
-pytest -v
-```
+*Testing analysis: 2026-03-24*
