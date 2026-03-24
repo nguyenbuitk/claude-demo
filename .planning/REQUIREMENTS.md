@@ -7,9 +7,9 @@
 
 ### Docker
 
-- [ ] **DOC-01**: Dockerfile at repo root — multi-stage build, non-root user
-- [ ] **DOC-02**: `/health` endpoint returns 200 JSON `{"status": "ok"}`
-- [ ] **DOC-03**: `HEALTHCHECK` instruction in Dockerfile
+- [x] **DOC-01**: Dockerfile at repo root — multi-stage build, non-root user
+- [x] **DOC-02**: `/health` endpoint returns 200 JSON `{"status": "ok"}`
+- [x] **DOC-03**: `HEALTHCHECK` instruction in Dockerfile
 
 ### CI/CD (GitHub Actions)
 
@@ -51,5 +51,5 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DOC-01, DOC-02, DOC-03 | Phase 1 | Pending |
+| DOC-01, DOC-02, DOC-03 | Phase 1 | Complete |
 | CI-01, CI-02, CI-03, CI-04 | Phase 2 | Pending |

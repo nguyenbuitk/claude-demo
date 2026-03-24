@@ -19,7 +19,7 @@
 **Plans:** 2 plans
 Plans:
 - [x] 01-01-PLAN.md — Add /health endpoint to Flask app with tests (DOC-02)
-- [ ] 01-02-PLAN.md — Multi-stage Dockerfile with HEALTHCHECK, .dockerignore and docker-compose cleanup (DOC-01, DOC-03)
+- [x] 01-02-PLAN.md — Multi-stage Dockerfile with HEALTHCHECK, .dockerignore and docker-compose cleanup (DOC-01, DOC-03)
 **Files touched:** `Dockerfile`, `web.py`, `.dockerignore`, `docker-compose.yml`, `tests/test_web.py`
 
 ---
