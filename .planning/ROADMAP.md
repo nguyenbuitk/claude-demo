@@ -16,7 +16,7 @@
 | 1 | Dockerize (health endpoint, multi-stage Dockerfile) | Complete | 2026-03-24 |
 | 2 | CI/CD Pipeline (GitHub Actions → GHCR) | Complete | 2026-03-24 |
 | 3 | AWS Networking + Registry (VPC, ECR, OIDC, IAM, ECS cluster) | Complete | 2026-03-25 |
-| 4 | ECS Fargate + RDS + ALB | Planned | — |
+| 4 | ECS Fargate + RDS + ALB | In Progress | — |
 | 5 | Terraform IaC | Planned | — |
 | 6 | Observability + Security | Planned | — |
 

@@ -7,9 +7,12 @@
 
 ## Current Status
 
-**Phase 3 — Complete**
+**Phase 4 — In Progress**
+**Branch:** `gsd/phase-04-ecs-fargate-rds-alb`
 
-AWS resources đã tạo (ap-southeast-1):
+---
+
+## Phase 3 — Complete (2026-03-25)
 
 | Resource | Name/ID | Status |
 |----------|---------|--------|
@@ -24,19 +27,20 @@ AWS resources đã tạo (ap-southeast-1):
 | Secrets Manager | claude-demo/db-password | Ready |
 | CI/CD | ci.yml: test → GHCR + ECR (OIDC) | Deployed |
 
-**Branch:** `gsd/phase-03-aws-networking-registry` — pending PR → main
-
 ---
 
-## Next: Phase 4 — ECS Fargate + RDS + ALB
+## Phase 4 — ECS Fargate + RDS + ALB
 
-Thứ tự tạo:
-1. RDS PostgreSQL (private subnet, db.t3.micro, vmo-db-sg)
-2. ECS Task Definition (image từ ECR, env từ Secrets Manager)
-3. ECS Service (Fargate, private subnet)
-4. ALB + Target Group + Listener (public subnet, vmo-alb-sg)
-5. Update ci.yml: thêm job `deploy-ecs` sau `build-and-push-ecr`
-6. Update app: migrate storage.py từ JSON file sang PostgreSQL
+**Goal:** `curl http://<alb-dns>/health` → `{"status": "ok"}` HTTP 200
+
+| Step | Resource | Detail | Status |
+|------|----------|--------|--------|
+| 1 | RDS PostgreSQL | private subnet, db.t3.micro, vmo-db-sg | ○ |
+| 2 | ECS Task Definition | image từ ECR, env từ Secrets Manager | ○ |
+| 3 | ECS Service | Fargate, private subnet | ○ |
+| 4 | ALB + Target Group + Listener | public subnet, port 80 → 5000 | ○ |
+| 5 | Update ci.yml | thêm job deploy-ecs | ○ |
+| 6 | Update storage.py | migrate JSON → PostgreSQL | ○ |
 
 ---
 
