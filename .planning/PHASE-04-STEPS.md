@@ -198,13 +198,28 @@ Thêm job `deploy-ecs` vào `.github/workflows/ci.yml` sau job `build-and-push-e
 
 ## Step 6: Migrate storage.py → PostgreSQL ○
 
-Cần update app để đọc/ghi PostgreSQL thay vì JSON file:
-- Thêm `psycopg2-binary` vào `requirements.txt`
-- Update `storage.py`: thay `load_tasks()`/`save_tasks()` dùng PostgreSQL
-- Tạo migration script tạo bảng `tasks`
-- Test local với DB connection string
+**Strategy:** Dual-mode storage — dùng PostgreSQL khi `DB_HOST` env var được set, fallback về JSON cho local dev/test.
 
-> Chi tiết sẽ bổ sung khi bắt đầu step này.
+**Files thay đổi:**
+1. `requirements.txt` — thêm `psycopg2-binary`
+2. `storage.py` — thêm PostgreSQL backend, giữ nguyên interface `load_tasks()`/`save_tasks()`
+3. `web.py` — gọi `init_db()` khi app start để tạo bảng `tasks` nếu chưa có
+
+**DB Schema:**
+```sql
+CREATE TABLE IF NOT EXISTS tasks (
+    id INTEGER PRIMARY KEY,
+    title TEXT NOT NULL,
+    description TEXT DEFAULT '',
+    done BOOLEAN DEFAULT FALSE,
+    priority TEXT DEFAULT 'medium',
+    created_at TEXT NOT NULL,
+    due_date TEXT,
+    tags TEXT DEFAULT '[]'
+);
+```
+
+**Save strategy:** DELETE all → INSERT all (giữ đúng interface hiện tại, IDs do Python quản lý)
 
 ---
 

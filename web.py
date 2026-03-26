@@ -6,11 +6,12 @@ sys.path.insert(0, os.path.dirname(__file__))
 from flask import Flask, render_template, request, redirect, url_for, jsonify
 from werkzeug.middleware.proxy_fix import ProxyFix
 from tasks import Task
-from storage import load_tasks, save_tasks
+from storage import load_tasks, save_tasks, init_db
 from datetime import date
 
 app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_host=1, x_proto=1)
+init_db()
 
 
 @app.route("/health")
