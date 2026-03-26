@@ -10,8 +10,8 @@
 |------|----------|--------|
 | 1 | RDS PostgreSQL | ✅ Done (2026-03-26) |
 | 2 | ECS Task Definition | ✅ Done (2026-03-26) |
-| 3 | ECS Service | ○ |
-| 4 | ALB + Target Group + Listener | ○ |
+| 3 | ALB + Target Group + Listener | ✅ Done (2026-03-26) |
+| 4 | ECS Service | ✅ Done (2026-03-26) |
 | 5 | Update ci.yml (deploy-ecs job) | ○ |
 | 6 | Migrate storage.py → PostgreSQL | ○ |
 
