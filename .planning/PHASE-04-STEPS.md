@@ -8,8 +8,8 @@
 
 | Step | Resource | Status |
 |------|----------|--------|
-| 1 | RDS PostgreSQL | ✅ Done (2026-03-25) |
-| 2 | ECS Task Definition | ○ |
+| 1 | RDS PostgreSQL | ✅ Done (2026-03-26) |
+| 2 | ECS Task Definition | ✅ Done (2026-03-26) |
 | 3 | ECS Service | ○ |
 | 4 | ALB + Target Group + Listener | ○ |
 | 5 | Update ci.yml (deploy-ecs job) | ○ |
@@ -45,14 +45,33 @@ ECS Cluster     : claude-demo
 - Instance ID: `claude-demo-db`
 - Engine: PostgreSQL 17.6
 - Class: db.t3.micro | Storage: 20 GB
-- Subnet: vmo-private-1a (10.0.10.131) — private ✓
+- Subnet group: `claude-demo-private-group` ✓
+- Subnet: vmo-private-1a (`subnet-04325cd1624327a16`, IP: 10.0.10.157) ✓
+- VPC: VMo `vpc-0120771daf2f1aea3` ✓
 - Public access: No ✓
-- Security group: `vmo-db-sg` ✓
+- Security group: `default` ⚠️ (nên đổi sang `vmo-db-sg`)
 - Secret: RDS-managed (tự rotate), chứa `username` + `password`
+
+**⚠️ Cần sửa:** Security group đang là `default` thay vì `vmo-db-sg`.
+→ RDS → claude-demo-db → Modify → Security group → chọn `vmo-db-sg` → Apply immediately
 
 **Lưu ý:**
 - Dùng RDS-managed secret ARN (ở trên) cho ECS Task Definition
 - `host`, `port`, `dbname` truyền qua environment variable riêng (không có trong secret)
+
+---
+
+## Step 2: ECS Task Definition ✅
+
+**Kết quả thực tế:**
+- Family: `claude-demo` (revision 3)
+- CPU: 256 (0.25 vCPU) | Memory: 512 MB
+- Image: `028668155772.dkr.ecr.ap-southeast-1.amazonaws.com/claude-demo:latest`
+- Port: 5000
+- Health check: `curl -f http://localhost:5000/health || exit 1`
+- Task role / Execution role: `ecsTaskExecutionRole`
+- Env vars: `DB_HOST`, `DB_PORT`, `DB_NAME`
+- Secrets: `DB_USERNAME`, `DB_PASSWORD` từ RDS-managed secret ✓
 
 ---
 
