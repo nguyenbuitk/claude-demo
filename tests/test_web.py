@@ -27,7 +27,7 @@ def test_health_body():
     client = get_client()
     response = client.get("/health")
     data = json.loads(response.data)
-    assert data == {"status": "ok"}
+    assert data["status"] == "ok"
 
 
 def test_index_still_works():
