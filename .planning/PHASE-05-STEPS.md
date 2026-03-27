@@ -16,7 +16,7 @@
 | 5 | Module: rds | ✅ Done (2026-03-27) |
 | 6 | Module: alb | ✅ Done (2026-03-27) |
 | 7 | Module: ecs | ✅ Done (2026-03-27) |
-| 8 | Environment dev + terraform init/apply | ⬜ Todo |
+| 8 | Environment dev + terraform init/apply | ✅ Done (2026-03-27) |
 | 9 | Verify: destroy → apply → app running | ⬜ Todo |
 
 ## Key Values (từ Phase 3-4, dùng để viết Terraform)
