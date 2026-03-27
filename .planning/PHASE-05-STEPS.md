@@ -10,12 +10,12 @@
 | Step | Resource | Status |
 |------|----------|--------|
 | 1 | S3 backend + DynamoDB lock (Console) + backend.tf | ✅ Done (2026-03-27) |
-| 2 | Module structure + provider.tf | ⬜ Todo |
-| 3 | Module: vpc | ⬜ Todo |
-| 4 | Module: ecr + iam | ⬜ Todo |
-| 5 | Module: rds | ⬜ Todo |
-| 6 | Module: alb | ⬜ Todo |
-| 7 | Module: ecs | ⬜ Todo |
+| 2 | Module structure + provider.tf | ✅ Done (2026-03-27) |
+| 3 | Module: vpc | ✅ Done (2026-03-27) |
+| 4 | Module: ecr + iam | ✅ Done (2026-03-27) |
+| 5 | Module: rds | ✅ Done (2026-03-27) |
+| 6 | Module: alb | ✅ Done (2026-03-27) |
+| 7 | Module: ecs | ✅ Done (2026-03-27) |
 | 8 | Environment dev + terraform init/apply | ⬜ Todo |
 | 9 | Verify: destroy → apply → app running | ⬜ Todo |
 
