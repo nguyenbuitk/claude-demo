@@ -48,7 +48,7 @@
 
 | ID | State | Subnet | EIP |
 |----|-------|--------|-----|
-| nat-0b7e3dc077a811f5c | **available** | vmo-public-1a | 47.131.109.34 |
+| nat-0a949df919e2b23ac | **available** | vmo-public-1a | 47.131.109.34 |
 
 > ECS task trong private subnet cần NAT để pull image từ ECR.
 
@@ -89,7 +89,7 @@
 | EBS Storage | 4 volumes, 56 GB gp3 | — | **$0.18** | Luôn tính dù instance tắt |
 | RDS Compute | claude-demo-db (db.t3.micro) | $0.026 | **$0.62** | Stop được khi không dùng |
 | RDS Storage | 20 GB gp2 | — | **$0.09** | Luôn tính dù DB stopped |
-| NAT Gateway | nat-0b7e3dc077a811f5c | $0.059 | **$1.42** | Chi phí lớn nhất sau EC2 |
+| NAT Gateway | nat-0a949df919e2b23ac | $0.059 | **$1.42** | Chi phí lớn nhất sau EC2 |
 | ALB | claude-demo-alb | $0.0225 | **$0.54** | Tính theo giờ |
 | ECS Fargate | 1 task (0.25 vCPU / 512 MB) | — | **$0.34** | Dừng = scale service về 0 |
 | Secrets Manager | 2 secrets | — | **$0.03** | Không đáng kể |
@@ -119,7 +119,7 @@ Khi không cần truy cập app, xóa NAT + ALB (ECS vẫn running nhưng không
 
 ```bash
 # 1. Xóa NAT Gateway
-aws ec2 delete-nat-gateway --nat-gateway-id nat-0b7e3dc077a811f5c
+aws ec2 delete-nat-gateway --nat-gateway-id nat-0a949df919e2b23ac
 
 # 2. Delete ALB (sau khi không cần public access)
 aws elbv2 delete-load-balancer \
@@ -144,7 +144,7 @@ aws ecs update-service --cluster claude-demo --service claude-demo-svc --desired
 aws rds stop-db-instance --db-instance-identifier claude-demo-db
 
 # Xóa NAT Gateway
-aws ec2 delete-nat-gateway --nat-gateway-id nat-0b7e3dc077a811f5c
+aws ec2 delete-nat-gateway --nat-gateway-id nat-0a949df919e2b23ac
 
 # Xóa ALB
 aws elbv2 delete-load-balancer \
@@ -216,7 +216,7 @@ aws ec2 start-instances --instance-ids i-02c2f43c72ffffcd7
 
 ```bash
 echo "1. Xóa NAT Gateway..." && \
-aws ec2 delete-nat-gateway --nat-gateway-id nat-0b7e3dc077a811f5c && \
+aws ec2 delete-nat-gateway --nat-gateway-id nat-0a949df919e2b23ac && \
 echo "2. Stop EC2 bootstrap-vmo..." && \
 aws ec2 stop-instances --instance-ids i-02c2f43c72ffffcd7 && \
 echo "3. Stop RDS..." && \
