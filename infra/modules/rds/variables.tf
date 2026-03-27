@@ -31,5 +31,5 @@ variable "db_name" {
 
 variable "db_username" {
   type    = string
-  default = "postgres"
+  default = "claude_admin"
 }

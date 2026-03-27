@@ -26,6 +26,8 @@ resource "aws_db_instance" "this" {
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids = [var.rds_sg_id]
 
+  storage_encrypted = true
+
   # Dev settings — không cần backup và multi-AZ
   skip_final_snapshot     = true
   deletion_protection     = false
@@ -34,6 +36,14 @@ resource "aws_db_instance" "this" {
 
   tags = {
     Name = "${var.app_name}-${var.env}-db"
+  }
+
+  # Brownfield: ignore các thuộc tính khác với Phase-3 manual resources
+  # vpc_security_group_ids: RDS ở VPC cũ, không thể dùng SG từ Terraform VPC mới
+  # db_subnet_group_name: RDS đang dùng subnet group tạo tay
+  # password: RDS được tạo với ManageMasterUserPassword=true (AWS tự quản lý password)
+  lifecycle {
+    ignore_changes = [db_subnet_group_name, vpc_security_group_ids, password]
   }
 }
 
