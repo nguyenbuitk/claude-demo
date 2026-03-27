@@ -42,8 +42,6 @@
 | 5 | Update ci.yml | deploy-ecs job added | ✅ Done |
 | 6 | Update storage.py | migrate JSON → PostgreSQL | ✅ Done |
 
-**Pending:** Merge PR → CI deploy → verify `curl /health` returns `{"status":"ok","version":"phase-04"}`
-
 ---
 
 ## AWS Account
