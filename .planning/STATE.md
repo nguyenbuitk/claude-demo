@@ -1,13 +1,13 @@
 # Project State
 
-**Updated:** 2026-03-25
+**Updated:** 2026-03-26
 **Milestone:** v2.0 AWS Foundation
 
 ---
 
 ## Current Status
 
-**Phase 4 — In Progress**
+**Phase 4 — Complete (2026-03-26)**
 **Branch:** `gsd/phase-04-ecs-fargate-rds-alb`
 
 ---
@@ -35,12 +35,12 @@
 
 | Step | Resource | Detail | Status |
 |------|----------|--------|--------|
-| 1 | RDS PostgreSQL | private subnet, db.t3.micro, vmo-db-sg | ○ |
-| 2 | ECS Task Definition | image từ ECR, env từ Secrets Manager | ○ |
-| 3 | ECS Service | Fargate, private subnet | ○ |
-| 4 | ALB + Target Group + Listener | public subnet, port 80 → 5000 | ○ |
-| 5 | Update ci.yml | thêm job deploy-ecs | ○ |
-| 6 | Update storage.py | migrate JSON → PostgreSQL | ○ |
+| 1 | RDS PostgreSQL | private subnet, db.t3.micro, vmo-db-sg | ✅ Done |
+| 2 | ECS Task Definition | image từ ECR, env từ Secrets Manager | ✅ Done |
+| 3 | ALB + Target Group + Listener | public subnet, port 80 → 5000 | ✅ Done |
+| 4 | ECS Service | Fargate, private subnet | ✅ Done |
+| 5 | Update ci.yml | deploy-ecs job added | ✅ Done |
+| 6 | Update storage.py | migrate JSON → PostgreSQL | ✅ Done |
 
 ---
 

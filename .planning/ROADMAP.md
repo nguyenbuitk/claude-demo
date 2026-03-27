@@ -3,7 +3,7 @@
 ## Milestones
 
 - v1.0 Docker + CI/CD Foundation — Phases 1-2 (shipped 2026-03-25)
-- v2.0 AWS Foundation — Phases 3-4 (in progress)
+- v2.0 AWS Foundation — Phases 3-4 (shipped 2026-03-26)
 - v3.0 Infrastructure as Code — Phase 5 (planned)
 - v4.0 Production Readiness — Phase 6 (planned)
 
@@ -16,7 +16,7 @@
 | 1 | Dockerize (health endpoint, multi-stage Dockerfile) | Complete | 2026-03-24 |
 | 2 | CI/CD Pipeline (GitHub Actions → GHCR) | Complete | 2026-03-24 |
 | 3 | AWS Networking + Registry (VPC, ECR, OIDC, IAM, ECS cluster) | Complete | 2026-03-25 |
-| 4 | ECS Fargate + RDS + ALB | In Progress | — |
+| 4 | ECS Fargate + RDS + ALB | Complete | 2026-03-26 |
 | 5 | Terraform IaC | Planned | — |
 | 6 | Observability + Security | Planned | — |
 

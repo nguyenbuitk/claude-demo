@@ -33,5 +33,5 @@ Target: AWS hands-on (ECS Fargate, RDS, ALB, ECR, Terraform) — probation evalu
 
 ## Real-world Target
 
-VinMotion stack: EKS, RDS Postgres, RabbitMQ, Redis, MongoDB, Nginx/ALB.
+Production stack: EKS, RDS Postgres, RabbitMQ, Redis, MongoDB, Nginx/ALB.
 This project builds familiarity with AWS services before applying to that stack.
