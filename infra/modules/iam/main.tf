@@ -47,15 +47,13 @@ resource "aws_iam_role_policy" "ecs_secrets" {
 
 # ─── GitHub Actions OIDC Provider ────────────────────────────────────────────
 # Cho phép GitHub Actions assume role mà không cần static AWS keys
-
-data "tls_certificate" "github" {
-  url = "https://token.actions.githubusercontent.com/.well-known/openid-configuration"
-}
+# Thumbprint hardcoded — AWS tự validate GitHub cert, thumbprint chỉ là formality
+# https://github.blog/changelog/2023-06-27-github-actions-update-on-oidc-integration-with-aws/
 
 resource "aws_iam_openid_connect_provider" "github" {
   url             = "https://token.actions.githubusercontent.com"
   client_id_list  = ["sts.amazonaws.com"]
-  thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
+  thumbprint_list = ["6938fd4d98bab03faadb97b34396831e3780aea1"]
 
   tags = {
     Name = "github-actions-oidc"

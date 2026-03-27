@@ -5,3 +5,4 @@
 *.tfvars.backup
 crash.log
 override.tf
+environments/**/*.tfvars
