@@ -1,8 +1,0 @@
-.terraform/
-# .terraform.lock.hcl — commit this file (pin provider versions)
-*.tfstate
-*.tfstate.backup
-*.tfvars.backup
-crash.log
-override.tf
-environments/**/*.tfvars
