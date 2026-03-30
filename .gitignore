@@ -33,4 +33,6 @@ Thumbs.db
 # Env files
 .env
 .env.*
-docs
+docs.claude/worktrees/
+infra/.terraform/
+test.sh

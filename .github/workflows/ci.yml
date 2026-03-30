@@ -86,6 +86,7 @@ jobs:
             028668155772.dkr.ecr.ap-southeast-1.amazonaws.com/project-1:latest
             028668155772.dkr.ecr.ap-southeast-1.amazonaws.com/project-1:sha-${{ github.sha }}
 
+
   deploy-ecs:
     needs: [build-and-push-ecr]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
