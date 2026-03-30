@@ -1,46 +1,45 @@
 # Project State
 
-**Updated:** 2026-03-26
-**Milestone:** v2.0 AWS Foundation
+**Updated:** 2026-03-30
+**Milestone:** v4.0 Production Readiness
 
 ---
 
 ## Current Status
 
-**Phase 4 — Complete (2026-03-26)**
-**Branch:** `gsd/phase-04-ecs-fargate-rds-alb`
+**Phase 6 — In Progress**
+**Branch:** `gsd/phase-06-observability-security`
 
 ---
 
-## Phase 3 — Complete (2026-03-25)
+## Phase 5 — Complete (2026-03-30)
 
-| Resource | Name/ID | Status |
-|----------|---------|--------|
-| VPC | vpc-0120771daf2f1aea3 (VMo, 10.0.0.0/16) | Ready |
-| Subnets | 2 public + 2 private (1a + 1b) | Ready |
-| Internet Gateway | igw-028fff24dd81ecf41 | Attached |
-| NAT Gateway | nat-0f2053b8f748242d8 (public-1a) | Available |
-| ECR | claude-demo (scanOnPush=true) | Ready |
-| OIDC Provider | token.actions.githubusercontent.com | Ready |
-| IAM Role | github-actions-claude-demo | Ready |
-| ECS Cluster | claude-demo (Fargate) | Ready |
-| Secrets Manager | claude-demo/db-password | Ready |
-| CI/CD | ci.yml: test → GHCR + ECR (OIDC) | Deployed |
+Terraform IaC viết lại từ đầu cho project-1.
+
+| Module | Resources | Status |
+|--------|-----------|--------|
+| vpc | VPC 10.1.0.0/16, subnets, IGW, NAT, SGs | ✅ |
+| ecr | ECR repo project-1 | ✅ |
+| iam | ECS execution role + GitHub OIDC | ✅ |
+| rds | PostgreSQL 17 + Secrets Manager | ✅ |
+| alb | ALB + target group + listener | ✅ |
+| ecs | Fargate cluster + task + service | ✅ |
+
+- State: S3 `claude-demo-terraform-state-028668155772/project-1/terraform.tfstate`
+- App: `curl http://project-1-dev-alb-856207708.ap-southeast-1.elb.amazonaws.com/health` → `{"status":"ok","version":"phase-04"}`
+- CI/CD: push to main → build ECR → deploy ECS (project-1-dev-cluster/project-1-dev-svc)
 
 ---
 
-## Phase 4 — ECS Fargate + RDS + ALB
+## Phase 6 — Observability + Security
 
-**Goal:** `curl http://<alb-dns>/health` → `{"status": "ok"}` HTTP 200
+**Goal:** CloudWatch logs + alarms, ECR scan, runbook.
 
-| Step | Resource | Detail | Status |
-|------|----------|--------|--------|
-| 1 | RDS PostgreSQL | private subnet, db.t3.micro, vmo-db-sg | ✅ Done |
-| 2 | ECS Task Definition | image từ ECR, env từ Secrets Manager | ✅ Done |
-| 3 | ALB + Target Group + Listener | public subnet, port 80 → 5000 | ✅ Done |
-| 4 | ECS Service | Fargate, private subnet | ✅ Done |
-| 5 | Update ci.yml | deploy-ecs job added | ✅ Done |
-| 6 | Update storage.py | migrate JSON → PostgreSQL | ✅ Done |
+**Success criteria:**
+1. ECS logs → CloudWatch Logs, queryable via Insights
+2. Alarms: CPU >80%, memory >80%, unhealthy target → SNS email
+3. ECR scan CVE khi push — CI fail nếu CRITICAL
+4. Runbook: xử lý service down, DB fail, high CPU
 
 ---
 
@@ -48,5 +47,8 @@
 
 - Account: `028668155772`
 - Region: `ap-southeast-1` (Singapore)
-- IAM User: `nguyen-bui-iam`
 - GitHub repo: `nguyenbuitk/claude-demo`
+- ALB: `project-1-dev-alb-856207708.ap-southeast-1.elb.amazonaws.com`
+- ECR: `028668155772.dkr.ecr.ap-southeast-1.amazonaws.com/project-1`
+- ECS Cluster: `project-1-dev-cluster`
+- ECS Service: `project-1-dev-svc`
