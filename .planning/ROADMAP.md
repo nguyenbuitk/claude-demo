@@ -5,7 +5,7 @@
 - v1.0 Docker + CI/CD Foundation — Phases 1-2 (shipped 2026-03-25)
 - v2.0 AWS Foundation — Phases 3-4 (shipped 2026-03-26)
 - v3.0 Infrastructure as Code — Phase 5 (shipped 2026-03-30)
-- v4.0 Production Readiness — Phase 6 (planned)
+- v4.0 Production Readiness — Phase 6 (shipped 2026-03-30)
 
 ---
 
@@ -18,7 +18,7 @@
 | 3 | AWS Networking + Registry (VPC, ECR, OIDC, IAM, ECS cluster) | Complete | 2026-03-25 |
 | 4 | ECS Fargate + RDS + ALB | Complete | 2026-03-26 |
 | 5 | Terraform IaC | Complete | 2026-03-30 |
-| 6 | Observability + Security | In Progress | — |
+| 6 | Observability + Security | Complete | 2026-03-30 |
 
 ---
 
